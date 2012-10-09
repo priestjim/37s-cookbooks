@@ -1,0 +1,67 @@
+global
+  log noc-01 local1 info
+  maxconn 2048
+  user <%= @node[:haproxy][:user] %>
+  group <%= @node[:haproxy][:user] %>
+  pidfile /var/run/haproxy/<%= @name %>.pid
+  stats socket /var/run/haproxy/<%= @name %>.stats level admin
+
+defaults
+  log global
+  balance roundrobin
+  option dontlognull
+  option redispatch
+  option httplog
+  option httpclose
+  mode http
+  retries 3
+  contimeout <%= @config.has_key?(:conn_timeout) ? @config[:conn_timeout] : "60s" %>
+  clitimeout <%= @config.has_key?(:client_timeout) ? @config[:client_timeout] : "60s" %>
+  srvtimeout <%= @config.has_key?(:server_timeout) ? @config[:server_timeout] : "60s" %>
+  errorfile 500 /etc/haproxy/500.http
+  errorfile 502 /etc/haproxy/500.http
+  errorfile 503 /etc/haproxy/500.http
+
+<% @config[:frontends].each do |instance_name, config| -%>
+frontend <%= instance_name %> <%= node[:proxy][:vip_prefix] %>.<%= @config[:proxy_vip_octet] %>:80
+  <% if config[:mode] -%>
+  mode <%= config[:mode] %>
+  <% end -%>
+  <% if config[:options] -%>
+  <% config[:options].each do |option| -%>
+  option <%= option %>
+  <% end -%>
+  <% config[:errorfiles].each do |error| -%>
+  errorfile <%= error[:code] %> <%= error[:file_path] %>
+  <% end -%>
+  <% end -%>
+  reqrep ^Front-End-Https:\ on X-Forwarded-Proto:\ https
+  
+  acl bypass       path_beg -i /images /stylesheets /javascripts /sprockets /favicon.ico /assets /thumbs /attachments /file /thumbnails
+  <% @config[:proxy_acls].each do |acl| -%>
+  <%= acl %>
+  <% end -%>
+  use_backend      app_hosts_bypass if bypass
+  default_backend  app_hosts
+
+  <% @config[:proxy_backends].each do |backend| -%>
+  <%= backend %>
+  <% end -%>
+  
+  <% config[:backends].each do |b_name, b_conf| -%>
+  backend <%= b_name %>
+    <% b_conf[:servers].each do |server| %>
+    server <%= server.first.gsub("-", "_") %> <%= server.last %>:<%= b_conf[:port] || "80" %> <%= b_conf[:server_options] %> check inter 5000 maxconn <%= @config[:maxconn] %>
+    <% end -%>
+
+  backend <%= b_name %>_bypass
+    <% b_conf[:servers].each do |server| -%>
+    server <%= server.first.gsub("-", "_") %> <%= server.last %>:<%= b_conf[:port] || "80" %> <%= b_conf[:server_options] %> check inter 5000
+    <% end -%>
+  <% end -%>
+
+listen <%= instance_name %>_admin <%= node[:proxy][:vip_prefix] %>.<%= @config[:proxy_vip_octet] %>:81
+  mode http
+  stats uri /
+
+<% end -%>

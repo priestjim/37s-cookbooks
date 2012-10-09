@@ -1,0 +1,5 @@
+maintainer        "Joshua Sierles"
+maintainer_email  "joshua@37signals.com"
+license           "Apache 2.0"
+description       "Installs bluepill and provides definitions and templates for monitoring"
+version           "0.7"

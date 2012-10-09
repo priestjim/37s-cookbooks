@@ -1,0 +1,27 @@
+ God.watch do |w|
+  w.name = "<%= @name %>"
+  w.interval = <%= @interval %>.seconds
+  w.start    = "rake -f <%= @rails_root %>/Rakefile jobs:work RAILS_ENV=<%= @rails_env %>"
+ 
+  w.uid = '<%= @user %>'
+  w.gid = '<%= @group %>'
+  
+  w.start_if do |start|
+    start.condition(:process_running) do |c|
+      c.interval = 5.seconds
+      c.running = false
+    end
+  end
+ 
+  w.restart_if do |restart|
+    restart.condition(:memory_usage) do |c|
+      c.above = <%= @memory_limit %>.megabytes
+      c.times = [3, 5] # 3 out of 5 intervals
+    end
+ 
+    restart.condition(:cpu_usage) do |c|
+      c.above = <%= @cpu_limit %>.percent
+      c.times = 5
+    end
+  end
+end

@@ -1,0 +1,1 @@
+default.dns[:aliases] = []

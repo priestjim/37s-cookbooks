@@ -1,0 +1,43 @@
+server {
+  listen 443;
+  server_name git git.<%= @node[:domain] %>;
+  
+  set $forwarded_proto https;
+  ssl on;
+  ssl_protocols SSLv3 TLSv1;
+  ssl_ciphers ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:-LOW:-SSLv2:-EXP;
+  
+  ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+  ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+  
+  include /etc/nginx/helpers/headers.conf;
+ 
+  location / {
+    root  /usr/lib/cgi-bin/;
+    fastcgi_index gitweb.cgi;
+    include /etc/nginx/helpers/fcgi_params.conf;
+    
+    fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+    fastcgi_param  AUTH_USER      $remote_user;
+    fastcgi_param  REMOTE_USER    $remote_user;
+    
+    
+    fastcgi_pass   127.0.0.1:47000;
+    
+    auth_basic    "Restricted";
+    auth_basic_user_file  /etc/gitweb/htpasswd.users;
+  }
+  
+  location ~ \.css$ {
+    root /usr/share/gitweb;
+  }
+  location ~ \.png$ {
+    root /usr/share/gitweb;
+  }
+	
+	location /integrity {
+    proxy_pass        http://192.168.2.77:80/;
+    proxy_set_header  X-Real-IP  $remote_addr;
+  }
+  
+}

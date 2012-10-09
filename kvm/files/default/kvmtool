@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'thor'
+require 'yaml'
+class KvmTool < Thor
+
+  desc "list", "More useful list of kvm guests"
+  def list
+    @total_allocated_mem = 0
+    list = `virsh list --all 2>&1`
+    lines = list.split("\n")[3..-1]
+    lines.each do |line|
+      num, name, state = line.split
+      info = `virsh dominfo #{name} 2>/dev/null | grep -v Connecting`
+      infoz = YAML.load(info)
+      cpu = infoz['CPU(s)']
+      memory = infoz["Max memory"].split.first.to_i
+      @total_allocated_mem += memory
+      memory_in_gb = memory / 1024 / 1024
+      puts "#{num} #{name} #{state} #{cpu} #{memory_in_gb}GB"
+    end
+    
+    puts "Total allocated memory: #{@total_allocated_mem / 1024} MB"
+  end
+
+  desc "build", "Build a new KVM guest"
+  method_options :memory => :required, :cpu => :required, :hostname => :required, :ip_address => :required, :root_disk_size => :string
+  def build
+    root_disk_size = options[:root_disk_size] || "18G"
+    volume = options[:hostname].gsub("-", "_")
+    
+    puts `lvcreate -n kvm_#{volume} -L #{root_disk_size} VolGroupKVM 2>&1`
+    command = "vmbuilder kvm ubuntu --suite=intrepid --flavour=virtual --arch=amd64 --hostname=#{options[:hostname]} --mem=#{options[:memory]} --cpus=#{options[:cpu]} \
+        --mirror=http://apt/archive-ubuntu/ubuntu --dest=/u/kvm/images/#{options[:hostname]} --tmp=/u/kvm/tmp --rootsize=16384 --swapsize=1024 \
+        --bridge=br0 --ip=#{options[:ip_address]} --mask=255.255.252.0 --net=192.168.0.0 --bcast=192.168.3.255 --gw=192.168.1.1 --dns=192.168.2.63 \
+        --addpkg=openssh-server --addpkg=acpid --addpkg=sysstat --addpkg=emacs22-nox --addpkg=vim --addpkg=git-core \
+        --addpkg=mysql-client --addpkg=libmysqlclient15-dev --addpkg=build-essential --addpkg=syslog-ng --addpkg=ntp \
+        --addpkg=curl --addpkg=wget --lang=en_US.UTF-8 \
+        --templates=/usr/local/share/kvm/templates \
+        --copy=/usr/local/share/kvm/files/manifest.txt \
+        --execscript=/usr/local/share/kvm/scripts/postinstall.sh \
+        --libvirt=qemu:///system --verbose --debug 2>&1"
+      puts system(command)
+      puts "Converting qcow2 image to LVM..."
+      puts `kvm-img convert /u/kvm/images/#{options[:hostname]}/disk0.qcow2 -O raw /u/kvm/images/#{options[:hostname]}/disk0.raw 2>&1`
+      puts `dd if=/u/kvm/images/#{options[:hostname]}/disk0.raw of=/dev/mapper/VolGroupKVM-kvm_#{volume} bs=1M 2>&1`
+
+      puts "Cleaning up temporary files/directories..."
+      puts `rm -rvf /u/kvm/images/#{options[:hostname]}`
+      
+  end
+end
+
+KvmTool.start

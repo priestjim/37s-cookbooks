@@ -1,0 +1,1 @@
+tail -150000 completed.log | grep -E 'Completed in [0-9][0-9][0-9][0-9]+.*destroy'

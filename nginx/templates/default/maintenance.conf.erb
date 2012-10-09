@@ -1,0 +1,19 @@
+if (-f $document_root/system/maintenance.html) {
+  set $maintenance 1;
+}
+
+<% if @node[:nginx][:maintenance][:bypass_ip_addresses] %>
+if ($remote_addr ~ ^<% @node[:nginx][:maintenance][:bypass_ip_addresses].join("|")%>$) {
+  set $maintenance 0;
+}
+<% end %>
+
+<% if @node[:nginx][:maintenance][:bypass_host_regex] %>
+if ($http_host ~ <%= @node[:nginx][:maintenance][:bypass_host_regex] %>) {
+  set $maintenance 0;
+}
+<% end %>
+
+if ($maintenance) {
+  rewrite ^.*$ /system/maintenance.html break;
+}

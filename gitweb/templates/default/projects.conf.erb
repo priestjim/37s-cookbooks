@@ -1,0 +1,4 @@
+<% @projects.each do |project| %>
+<% next if project[:visible] == false %>
+<%= project[:id] %> Gitosis+User
+<% end %>

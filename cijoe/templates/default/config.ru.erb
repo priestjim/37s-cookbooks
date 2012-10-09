@@ -1,0 +1,19 @@
+require 'cijoe'
+
+# setup middleware
+use Rack::CommonLogger
+
+<% @repos.each do |repo| %>
+<% klass = repo[:full_name].gsub("-", "_").gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase } %>
+class <%= klass %> < CIJoe::Server; end
+
+map "/<%= repo[:full_name] %>" do
+  <%= klass %>.configure do |config|
+    config.set :project_path, "<%= repo[:full_path] %>"
+    config.set :show_exceptions, true
+    config.set :lock, true
+  end
+
+  run <%= klass %>
+end
+<% end %>

@@ -1,0 +1,16 @@
+Bluepill.application("<%= @name %>") do |app|
+  app.working_dir = "<%= @rails_root %>"
+  app.process("<%= @name %>") do |process|
+    process.start_command = "/usr/local/bin/searchd -c <%= @rails_root %>/config/sphinx/<%= @config_file %>"
+    process.stop_command = "/usr/local/bin/searchd -c <%= @rails_root %>/config/sphinx/<%= @config_file %> --stop"
+    process.stdout = process.stderr = "<%= @rails_root %>/shared/log/bluepill_sphinx.log"
+    process.pid_file = "<%= @rails_root %>/tmp/pids/searchd.pid"
+    process.checks :mem_usage, :every => 10.seconds, :below => 256.megabytes, :times => [3, 5]
+    process.uid = "<%= @user %>"
+    process.gid = "<%= @group %>"
+
+    process.start_grace_time = 10.seconds
+    process.restart_grace_time = 10.seconds
+    process.checks :flapping, :times => 2, :within => 30.seconds, :retry_in => 7.seconds
+  end
+end

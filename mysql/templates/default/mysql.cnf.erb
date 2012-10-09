@@ -1,0 +1,61 @@
+[safe_mysqld]
+err-log = <%= @params[:config][:mysqld_error_log] %>
+
+[mysqld]
+<% if @params[:version] == '5.1.42-9-percona' %>
+ignore-builtin-innodb
+plugin-load=innodb=ha_innodb.so
+<% end %>
+<% if @params[:read_only] == 1 -%>read_only = 1<% end -%>
+datadir = <%= @params[:config][:datadir] %>
+socket = <%= @params[:config][:socket_path] %>
+log-error = <%= @params[:config][:mysqld_error_log] %>
+pid-file = <%= @params[:config][:pidfile] %>
+server-id = <%= @params[:config][:server_id] %>
+report-host = <%= @node[:hostname] %>
+port = <%= @params[:config][:port] %>
+<% if @params[:config][:binlogs_enabled] -%>
+log-bin = <%= @params[:config][:binlog_dir] %>/binlog
+expire_logs_days = 5
+binlog-ignore-db = test
+binlog-ignore-db = mysql
+sync_binlog = <%= @params[:config][:sync_binlog] %>
+<% end -%>
+innodb_data_home_dir = <%= @params[:config][:datadir] %>
+<% if @params[:config][:innodb_file_per_table] -%>
+innodb_file_per_table
+<% end -%>
+innodb_data_file_path = ibdata1:10M:autoextend
+innodb_log_group_home_dir = <%= @params[:config][:innodb_log_dir] %>
+innodb_log_files_in_group = 2
+innodb_log_file_size = <%= @params[:config][:innodb_log_file_size] %>
+innodb_log_buffer_size = <%= @params[:config][:innodb_log_buffer_size] %>
+innodb_flush_log_at_trx_commit = <%= @params[:config][:innodb_flush_log_at_trx_commit] %>
+innodb_flush_method = <%= @params[:config][:innodb_flush_method] %>
+innodb_buffer_pool_size = <%= @params[:config][:innodb_buffer_pool_size] %>
+innodb_thread_concurrency = <%= @params[:config][:innodb_thread_concurrency] %>
+max_connections = <%= @params[:config][:max_connections] %>
+thread_cache = <%= @params[:config][:thread_cache] %>
+table_cache = <%= @params[:config][:table_cache] %>
+log-warnings
+key_buffer = <%= @params[:config][:key_buffer] %>
+long_query_time = <%= @params[:config][:long_query_time] %>
+slow_query_log_file = <%= @params[:config][:slow_query_log] %>
+max_allowed_packet = <%= @params[:config][:max_allowed_packet] %>
+query_cache_size = <%= @params[:config][:query_cache_size] %>
+max_connect_errors = 99999999
+connect_timeout=600
+net_read_timeout=600
+skip-external-locking
+auto_increment_increment = <%= @params[:config][:auto_increment_increment] %>
+auto_increment_offset = <%= @params[:config][:auto_increment_offset] %>
+<% if @node[:mysql][:percona_patches] -%>log_slow_verbosity = "query_plan,innodb"<% end -%>
+<% if @params[:config][:character_set] -%>character_set_server = <%= @params[:config][:character_set] %><% end -%>
+<% if @params[:config][:collation] -%>collation_server = <%= @params[:config][:collation] %><% end -%>
+<% if @params[:config][:log_slave_updates] -%>log_slave_updates<% end -%>
+
+<% if @params[:backup_location] -%>
+[xtrabackup]
+target_dir = <%= @params[:backup_location] %>
+<% end -%>
+   

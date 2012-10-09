@@ -1,0 +1,24 @@
+Copy the stock image to a new volume on a dom0.
+Mount the new volume, and drop in working /etc/network/interfaces, /etc/hostname, and /root/.ssh/authorized_keys.
+Generate a Xen config file in /etc/xen/auto.
+xm create ...
+cool. the copy process is a dd?
+Actually, restore.
+might as well get a recipe going for it
+So, it's really:
+/usr/sbin/lvcreate -L 16G -n slice_root VolGroupXen
+/usr/sbin/lvcreate -L 2G -n slice_swap
+^ VolGroupXen
+where can i try this?
+Any of the xens.
+We need to copy the stock image around, it's currently in my NFS homedir.
+/sbin/mkfs.ext3 /dev/mapper/VolGroupXen-slice_root
+/sbin/mkswap /dev/mapper/VolGroupXen-slice_swap
+mkdir /tmp/mnt.slice_root
+mount -t ext3 /dev/mapper/VolGroupXen-slice_root /tmp/mnt.slice_root
+cd /tmp/mnt.slice_root
+restore -rf /home/mark/intrepid.dump
+cd /
+umount /tmp/mnt.slice_root
+cool
+"slice" is replaced with the name of the slice everywhere, obviously.

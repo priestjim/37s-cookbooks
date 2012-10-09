@@ -1,0 +1,16 @@
+Bluepill.application("mogilefsd") do |app|
+  app.process("mogilefsd") do |process|
+    process.start_command = "/u/apps/mogilefs/bin/mogilefsd"
+    process.stdout = process.stderr = "/var/log/bluepill/mogilefsd.log"
+    process.uid = "app"
+    process.gid = "app"
+    process.pid_file = "/var/run/bluepill/mogilefsd.pid"
+    process.daemonize = true
+    process.checks :mem_usage, :every => 10, :below => 200.megabytes, :times => [3, 5]
+    
+    process.monitor_children do |cp|
+      cp.checks :mem_usage, :every => 10, :below => 30.megabytes, :times => [3, 5]
+      cp.stop_command = "kill -QUIT {{PID}}"
+    end
+  end
+end

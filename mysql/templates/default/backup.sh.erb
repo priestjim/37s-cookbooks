@@ -1,0 +1,6 @@
+#!/bin/sh
+
+find <%= @destination %> -name \*.lzop -mtime +7 -delete
+innobackupex-1.5.1 --defaults-file=<%= @base_dir %>/config/my.cnf --user=root --password=<%= @backup_password %> \
+                   --socket=<%= @socket %> --stream=tar <%= @destination %> | lzop -c - \
+                   > <%= @destination %>/`date +%Y_%m_%d_<%= @name %>.tar.lzop`

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:             mysql_<%= @options[:name] %>
+# Required-Start:       
+# Required-Stop:        
+# Default-Start:        2 3 4 5
+# Default-Stop:         1
+# Short-Description:    MySQL server for <%= @options[:name] %>
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+    log_daemon_msg "Starting MySQL server for <%= @options[:name] %>" mysql_<%= @options[:name] %>
+    if start-stop-daemon -b -S -p <%= @options[:config][:pidfile] %> -a <%= @node[:mysql][:root] %>/server/<%= @options[:version] %>/bin/mysqld_safe \
+     -- --defaults-file=<%= @node[:mysql][:root] %>/<%= @options[:name] %>/config/my.cnf --user=mysql; then
+      log_end_msg 0
+    else
+      log_end_msg 1
+    fi
+    ;;
+  stop)
+    echo "Stop is not implemented, please shutdown MySQL manually."
+    ;;
+  *)
+    log_action_msg "Usage: /etc/init.d/mysql_<%= @options[:name] %> start"
+    exit
+esac
+
+exit 0

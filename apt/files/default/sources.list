@@ -1,0 +1,10 @@
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid main restricted
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid-updates main restricted
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid universe
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid-updates universe
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid multiverse
+deb-amd64 http://apt/archive-ubuntu/ubuntu intrepid-updates multiverse
+deb-amd64 http://apt/security-ubuntu/ubuntu intrepid-security multiverse
+deb-amd64 http://apt/security-ubuntu/ubuntu intrepid-security universe
+deb-amd64 http://apt/security-ubuntu/ubuntu intrepid-security main restricted
+deb-amd64 http://apt/archive-canonical/ubuntu intrepid partner

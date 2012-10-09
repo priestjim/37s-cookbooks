@@ -1,0 +1,11 @@
+Bluepill.application("perlbal") do |app|
+  app.process("perlbal") do |process|
+    process.start_command = "/u/apps/mogilefs/bin/perlbal"
+    process.pid_file = "/var/run/bluepill/perlbal.pid"
+    process.stdout = process.stderr = "/var/log/bluepill/perlbal.log"
+    process.uid = "app"
+    process.gid = "app"
+    process.daemonize = true
+    process.checks :mem_usage, :every => 10.seconds, :below => 1600.megabytes, :times => [3,5]
+  end
+end

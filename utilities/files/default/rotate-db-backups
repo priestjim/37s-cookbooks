@@ -1,0 +1,4 @@
+#!/bin/sh
+
+find /u/backup/db -type f -name \*mysql.tar.gz -mtime +5 -delete
+find /u/backup/db -mindepth 2 -maxdepth 2 -type d \! -name current -mtime +3 -exec rm -rf {} \;

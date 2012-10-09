@@ -1,0 +1,20 @@
+#!/bin/sh
+#install ruby ee
+sleep 60
+cd /tmp
+/usr/bin/wget http://<%= @node[:netboot][:tftp_server_ip] %>/ruby-enterprise_1.8.7-2010.01_amd64.deb
+/usr/bin/dpkg -i ruby-enterprise_1.8.7-2010.01_amd64.deb
+#install chef gems
+/usr/local/bin/gem install chef --no-rdoc --no-ri
+/bin/mkdir /etc/chef
+cd /etc/chef
+/usr/bin/wget /usr/bin/wget http://<%= @node[:netboot][:tftp_server_ip] %>/<%= @filename %>.pem -O client.pem
+/usr/bin/wget /usr/bin/wget http://<%= @node[:netboot][:tftp_server_ip] %>/client.rb
+#run chef client
+/usr/local/bin/chef-client
+#run additional server specific items
+<% @server[:post_inst_commands].each do |command| %>
+  <%= command %>
+<% end %>
+#get rid of the first boot script
+/bin/rm /etc/init.d/firstboot /etc/rc2.d/S99firstboot

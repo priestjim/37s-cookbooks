@@ -1,0 +1,7 @@
+include ubuntu-installer/amd64/boot-screens/37menu.cfg
+default ubuntu-installer/amd64/boot-screens/vesamenu.c32
+prompt 0
+timeout 20
+LABEL Standard Server Install
+kernel ubuntu-installer/amd64/linux
+append priority=critical ramdisk_size=14984 locale=en_US console-setup/layoutcode=us netcfg/disable_dhcp=true netcfg/choose_interface=eth0 netcfg/get_hostname=<%= @key %> netcfg/get_nameservers=<%= @node[:netboot][:tftp_server_ip] %> netcfg/get_ipaddress=<%= @server[:netboot][:interfaces][:eth0][:ip_address] %> netcfg/get_netmask=<%= @server[:netboot][:interfaces][:eth0][:subnet_mask] %> netcfg/get_gateway=<%= @server[:netboot][:interfaces][:eth0][:gateway] %> netcfg/confirm_static=true url=http://<%= @node[:netboot][:tftp_server_ip] %>/<%= @filename %> vga=normal initrd=ubuntu-installer/amd64/initrd.gz --

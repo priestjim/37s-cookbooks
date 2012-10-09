@@ -1,0 +1,8 @@
+maintainer        "37signals"
+maintainer_email  "sysadmins@37signals.com"
+description       "Configures gitweb"
+version           "0.1"
+depends           "git"
+depends           "fcgiwrap"
+depends           "nginx"
+depends           "ssl_certificates"

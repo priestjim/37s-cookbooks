@@ -1,0 +1,28 @@
+myorigin = <%= @node[:postfix][:relays_mail] ? @node[:postfix][:myorigin] : @node[:fqdn] %>
+myhostname = <%= @node[:postfix][:relays_mail] ? @node[:postfix][:myorigin] : @node[:fqdn]  %>
+mydestination = <%= @node[:fqdn] %>, localhost.<%= @node[:domain] %>, localhost
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 <% if @node[:postfix][:mynetworks] -%><%= @node[:postfix][:mynetworks].join(' ') %><% end -%>
+
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+unknown_local_recipient_reject_code = 550
+smtpd_banner = $myhostname ESMTP $mail_name
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+local_header_rewrite_clients = static:none
+message_size_limit = <%= @node[:postfix][:message_size_limit] %>
+default_destination_concurrency_limit = <%= @node[:postfix][:destination_concurrency_limit] %>
+
+<% if @node[:postfix][:virtual_domains] %>
+virtual_maps = pcre:$config_directory/virtual
+<% end %>
+<% if @node[:postfix][:aliases] %>
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+<% end %>
+
+<% if @node[:postfix][:relay_host] && !@node[:postfix][:relays_mail] %>
+relayhost = <%= @node[:postfix][:relay_host] %>
+<% end %>

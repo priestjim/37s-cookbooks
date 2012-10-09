@@ -1,0 +1,4 @@
+#!/bin/sh
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
+/usr/local/bin/chef-client 2>&1 | /usr/bin/tee /root/chef-firstboot.log

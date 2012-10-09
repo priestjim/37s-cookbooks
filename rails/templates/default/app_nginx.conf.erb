@@ -1,0 +1,59 @@
+upstream <%= @full_name %> {
+  server unix:/u/apps/<%= @app_name %>/shared/sockets/unicorn.sock fail_timeout=0;
+}
+
+server {
+  listen 80;
+  server_name <%= @app[:environments][@conf[:env]][:domains].join(" ") %>;
+  
+  root /u/apps/<%= @app_name %>/current/public;
+
+  access_log	/u/apps/<%= @app_name %>/shared/log/access.log;
+  error_log   /u/apps/<%= @app_name %>/shared/log/error.log;
+  
+  include /etc/nginx/helpers/expires.conf;
+  include /etc/nginx/helpers/maintenance.conf;
+  include /etc/nginx/helpers/invalid_requests.conf;
+  include /etc/nginx/helpers/headers.conf;
+
+  location /nginx_status {
+    stub_status on;
+    access_log off;
+    allow 10.10.0.0/16;
+    deny all;
+  }
+
+  location / {
+
+    rewrite ^/signup/(Free|Personal|Basic|Plus|Premium|Max|Solo)$ https://signup.37signals.com/<%= @app_name %>/$1/signup/new redirect;
+
+    proxy_buffer_size 16k;
+    proxy_buffers 8 16k;
+    proxy_busy_buffers_size 32k;
+    
+    if (-f $request_filename) {
+       break;
+     }
+
+     if (!-f $request_filename) {
+       proxy_pass http://<%= @full_name %>;
+       break;
+     }
+   }
+
+   location /u/depot {
+     root /;
+     internal;
+   }
+
+  error_page  500 502 503 504 /500.html;
+  error_page  404 /404.html;
+
+  location = /500.html {
+    root  /u/apps/<%= @app_name %>/current/public;
+  }
+
+  location = /400.html {
+    root  /u/apps/<%= @app_name %>/current/public;
+  }
+}

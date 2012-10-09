@@ -1,0 +1,19 @@
+upstream backend_cluster { server 127.0.0.1:81; }
+
+server {
+	listen       81;
+	server_name  37signals.com;
+	root        /u/sites/37signals/current/public;
+    
+	location / {
+		set $memcached_key $uri;
+		memcached_pass 127.0.0.1:11211;
+		default_type     text/html;
+		error_page 404 = /backend;
+	}
+
+	location /backend { 
+		internal;
+		proxy_pass http://backend_cluster;
+	}
+}

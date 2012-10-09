@@ -1,0 +1,46 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures cijoe",
+  "providing": {
+    "cijoe": [
+
+    ]
+  },
+  "name": "cijoe",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "cijoe": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "git::server": [
+
+    ],
+    "unicorn": [
+
+    ]
+  }
+}

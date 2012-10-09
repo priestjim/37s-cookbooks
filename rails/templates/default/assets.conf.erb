@@ -1,0 +1,53 @@
+<% @apps.each do |app| %>
+<% next unless app[:environments] %>
+<% app[:environments].each do |env, conf| %>
+<% next unless conf[:domains] && env.to_s == node[:rails][:asset_environment]  %>
+
+upstream <%= app[:id] %>_<%= env %> {
+  <% node[:proxy_servers][env].each do |server| %>
+  server <%= server %>:37<%= "#{app[:id]}_#{env}".sum.to_s[0..2] %>;
+  <% end %>
+}
+
+server {
+  listen 80;
+  server_name <%= conf[:domains].join(" ") %>;
+  
+  root /u/apps/<%= app[:id] %>/current/public;
+
+  access_log	/u/apps/<%= app[:id] %>/shared/log/access.log;
+  error_log   /u/apps/<%= app[:id] %>/shared/log/error.log;
+  
+  include /etc/nginx/helpers/expires.conf;
+  
+  error_page  500 502 503 504 /500.html;
+  error_page  404 /404.html;
+
+  location /maintenance.html {
+    root /u/apps/<%= app[:id] %>/shared/system;
+  }
+
+  location  ~ ^/(thumbs|assets|attachments).*$ {
+    proxy_set_header   Host             $host;
+    proxy_set_header   X-Real-IP        $remote_addr;
+    proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Download true;
+    proxy_redirect     off;
+    proxy_pass         http://<%= "#{app[:id]}_#{env}" %>;
+   }
+
+   location /u {
+     root /;
+     internal;
+   }
+
+  location = /500.html {
+    root  /u/apps/<%= app[:id] %>/current/public;
+  }
+
+  location = /400.html {
+    root  /u/apps/<%= app[:id] %>/current/public;
+  }
+}
+<% end %>
+<% end %>

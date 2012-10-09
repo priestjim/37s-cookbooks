@@ -1,0 +1,6 @@
+#!/bin/sh
+
+<% @node[:mysql][:instances].each do |name, instance| %>
+<% next unless @node[:mysql][:instances][name][:perform_backups] %>
+/u/mysql/<%= name %>/scripts/backup.sh
+<% end %>

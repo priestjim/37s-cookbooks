@@ -1,0 +1,11 @@
+deb http://ec2-us-east-mirror.rightscale.com/ubuntu_daily/latest intrepid main restricted multiverse universe
+deb http://ec2-us-east-mirror.rightscale.com/ubuntu_daily/latest intrepid-updates main restricted multiverse universe
+deb http://ec2-us-east-mirror.rightscale.com/ubuntu_daily/latest intrepid-security main restricted multiverse universe
+
+deb http://ec2-us-east-mirror1.rightscale.com/ubuntu_daily/latest intrepid main restricted multiverse universe
+deb http://ec2-us-east-mirror1.rightscale.com/ubuntu_daily/latest intrepid-updates main restricted multiverse universe
+deb http://ec2-us-east-mirror1.rightscale.com/ubuntu_daily/latest intrepid-security main restricted multiverse universe
+
+deb http://ec2-us-east-mirror2.rightscale.com/ubuntu_daily/latest intrepid main restricted multiverse universe
+deb http://ec2-us-east-mirror2.rightscale.com/ubuntu_daily/latest intrepid-updates main restricted multiverse universe
+deb http://ec2-us-east-mirror2.rightscale.com/ubuntu_daily/latest intrepid-security main restricted multiverse universe

@@ -1,0 +1,3 @@
+#!/bin/sh
+exec 2>&1
+exec su app -c "/u/apps/<%= @app_name %>/current/script/runner -e <%= @rails_env || "production" %> \"Delayed::Worker.new(:min_priority => ENV['MIN_PRIORITY'], :max_priority => ENV['MAX_PRIORITY']).start\""

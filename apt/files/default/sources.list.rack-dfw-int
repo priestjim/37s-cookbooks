@@ -1,0 +1,28 @@
+# Local Apt mirror of Intrepid.
+deb http://apt/archive-ubuntu/ubuntu intrepid main restricted
+deb http://apt/archive-ubuntu/ubuntu intrepid-updates main restricted
+deb http://apt/archive-ubuntu/ubuntu intrepid universe
+deb http://apt/archive-ubuntu/ubuntu intrepid-updates universe
+deb http://apt/archive-ubuntu/ubuntu intrepid multiverse
+deb http://apt/archive-ubuntu/ubuntu intrepid-updates multiverse
+deb http://apt/security-ubuntu/ubuntu intrepid-security multiverse
+deb http://apt/security-ubuntu/ubuntu intrepid-security universe
+deb http://apt/security-ubuntu/ubuntu intrepid-security main restricted
+
+# Local Apt mirror of Hardy.
+deb http://apt/archive-ubuntu/ubuntu hardy main restricted
+deb http://apt/archive-ubuntu/ubuntu hardy-updates main restricted
+deb http://apt/archive-ubuntu/ubuntu hardy universe
+deb http://apt/archive-ubuntu/ubuntu hardy-updates universe
+deb http://apt/archive-ubuntu/ubuntu hardy multiverse
+deb http://apt/archive-ubuntu/ubuntu hardy-updates multiverse
+deb http://apt/security-ubuntu/ubuntu hardy-security multiverse
+deb http://apt/security-ubuntu/ubuntu hardy-security universe
+deb http://apt/security-ubuntu/ubuntu hardy-security main restricted
+
+# Hardy and Intrepid sources on Rackspace mirror.
+deb-src http://mirror.rackspace.com/ubuntu intrepid main restricted universe
+deb-src http://mirror.rackspace.com/ubuntu hardy main restricted universe
+
+# Local Apt repo for locally built packages.
+deb http://dist/apt intrepid main contrib non-free

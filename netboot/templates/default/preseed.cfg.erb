@@ -1,0 +1,83 @@
+#### Contents of the preconfiguration file (for &releasename;)
+### Localization
+# Locale sets language and country.
+d-i debian-installer/locale string en_US
+
+# Keyboard selection.
+# Disable automatic (interactive) keymap detection.
+d-i console-setup/ask_detect boolean false
+d-i console-setup/layoutcode string us
+
+### Mirror settings
+d-i mirror/protocol string http
+d-i mirror/country string manual
+d-i mirror/http/hostname string mirrors.servercentral.net
+d-i mirror/http/directory string /ubuntu
+#d-i mirror/http/proxy string http://<%= @node[:netboot][:tftp_server_ip] %>:3128
+
+### Clock and time zone setup
+# Controls whether or not the hardware clock is set to UTC.
+d-i clock-setup/utc boolean true
+
+# Time Zone
+d-i time/zone string US/Central
+
+### Partitioning
+d-i partman-auto/disk string /dev/sda
+d-i partman-auto/method string lvm
+d-i partman-auto/purge_lvm_from_device boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-auto/init_automatically_partition \
+	select Guided - use entire disk and set up LVM
+
+  d-i partman-auto/expert_recipe string                         \
+        boot-root ::                                            \
+                250 250 250 ext3                                \
+                        $primary{ }                             \
+                        $bootable{ }                            \
+                        method{ format } format{ }              \
+                        use_filesystem{ } filesystem{ ext3 }    \
+                        mountpoint{ /boot }                     \
+                .                                               \
+		100 1000000 1000000000 ext3 			\
+			method{ lvm } 				\
+			use_filesystem{ } 			\
+			format{ } 				\
+			vg_name{ rootVG }			\
+		. 						\
+                10240 10240 10240 ext3                      	\
+                        $lvmok{ } 				\
+                        method{ format } format{ }              \
+                        in_vg{ rootVG }	                        \
+			lv_name{ root } 			\
+                        use_filesystem{ } filesystem{ ext3 }    \
+                        mountpoint{ / }                         \
+                .                                               \
+                2048 2048 2048 linux-swap                       \
+                        $lvmok{ } 				\
+                        method{ swap } format{ }                \
+			in_vg{ rootVG }				\
+			lv_name{ swap } 			\
+                .
+
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition \
+	select Finish partitioning and write changes to disk
+d-i partman/confirm boolean true
+
+### Account setup
+# To create a normal user account.
+d-i passwd/user-fullname string Signal
+d-i passwd/username string signal
+d-i passwd/user-password-crypted password $1$Ryc7Coa/$tdP3nK76sbsFlF1b2YWmL/
+
+### Packages
+tasksel tasksel/first multiselect standard
+
+# Individual additional packages to install
+d-i pkgsel/include string openssh-server build-essential wget ssh git-core
+
+### Finish
+# Avoid that last message about the install being complete.
+d-i finish-install/reboot_in_progress note
+d-i preseed/late_command string cd /target/etc/init.d/ && /usr/bin/wget http://<%= @node[:netboot][:tftp_server_ip] %>/<%= @script %> -O firstboot && chmod +x firstboot && cd ../rc2.d && ln -s ../init.d/firstboot S99firstboot

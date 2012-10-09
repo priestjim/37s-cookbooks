@@ -1,0 +1,25 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+RUN_ERL=/usr/bin/run_erl
+TO_ERL=/usr/lib/erlang/erts-5.7.1/bin/to_erl
+ERLANG=/usr/bin/erl
+ERLANG_ARGS="<%= @app[:erlang_args] %>"
+. /lib/lsb/init-functions
+
+NAME=<%= @app[:name] %>
+DESCRIPTION="<%= @app[:description] %>"
+USER=app
+APP_DIR=<%= @app[:base_dir] %>
+BEAM_DIR=${APP_DIR}/ebin
+LOG_DIR=${APP_DIR}/log
+PIPE_DIR=${APP_DIR}/tmp/
+NODE=`hostname -s`
+COOKIE=`cat /home/app/.erlang.cookie`
+
+mkdir -p ${LOG_DIR} ${PIPE_DIR}
+chown -R ${USER} ${LOG_DIR} ${PIPE_DIR}
+
+sudo -u ${USER} $RUN_ERL ${PIPE_DIR} ${LOG_DIR} "$ERLANG -boot start_sasl \
+    -sname ${NAME} -pa ${BEAM_DIR} -setcookie ${COOKIE} ${ERLANG_ARGS}    \
+    -s <%= @app[:supervisor_name] %> start"

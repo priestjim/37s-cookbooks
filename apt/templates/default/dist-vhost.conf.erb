@@ -1,0 +1,6 @@
+<VirtualHost *:80>
+  ServerName      <%= @node[:apache][:sites][:dist][:server_name] %>
+  ServerAlias	  <%= @node[:apache][:sites][:dist][:server_alias] %>
+  DocumentRoot    <%= @node[:apache][:sites][:dist][:document_root] %>
+  ErrorLog        <%= @node[:apache][:sites][:dist][:error_log] %>
+</VirtualHost>

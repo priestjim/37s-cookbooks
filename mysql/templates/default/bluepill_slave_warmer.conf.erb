@@ -1,0 +1,12 @@
+Bluepill.application("<%= @name %>") do |app|
+  app.process("<%= @name %>") do |process|
+    process.start_command = "/usr/sbin/tcpdump -i any port 3306 -s 65535 -x -n -q -tttt | /usr/bin/mk-query-digest --statistics --iterations 4 --run-time 15m --type tcpdump  --filter '$event->{arg} && $event->{arg} =~ m/^SELECT/i' --statistics --execute h=<%= @host %>,P=<%= @port %>,u=<%= @user %>,p=<%= @password %>,D=<%= @database %> --execute-throttle 70,30,5 >> <%= @node[:mysql][:root] %>/<%= @instance %>/logs/slave_warmer.log 2>&1"
+    process.pid_file = "<%= @node[:mysql][:root] = "/u/mysql"%>/<%= @name %>.pid"
+    process.daemonize = true
+    process.checks :mem_usage, :every => 10.seconds, :below => 300.megabytes, :times => [3,5]
+    process.monitor_children do |cp|
+      cp.checks :mem_usage, :every => 10, :below => 250.megabytes, :times => [3, 5]
+      cp.stop_command = "kill -QUIT {{PID}}"
+    end
+  end
+end

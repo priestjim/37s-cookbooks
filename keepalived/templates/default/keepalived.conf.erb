@@ -1,0 +1,31 @@
+global_defs {
+   notification_email {
+     <%= @node[:keepalived][:notification_email] %>
+   }
+   notification_email_from <%= @node[:keepalived][:email_from] %>
+   smtp_server <%= @node[:keepalived][:smtp_host] %>
+   smtp_connect_timeout <%= @node[:keepalived][:smtp_timeout] %>
+   router_id <%= @node[:keepalived][:router_id] %>
+   lvs_id <%= @node[:keepalived][:lvs_id] %>
+}
+
+<% @node[:keepalived][:vrrp_instances].each do |vrrp| %> 
+vrrp_instance <%= vrrp[:name] %> {
+    state <%= vrrp[:state] %>
+    interface <%= vrrp[:interface] %>
+    garp_master_delay <%= vrrp[:garp_master_delay] %>
+    <% if vrrp[:smtp_alert] %>smtp_alert<% end -%>
+    virtual_router_id <%= vrrp[:virtual_router_id] %>
+    priority <%= vrrp[:priority] %>
+    advert_int <%= vrrp[:advert_int] %>
+    authentication {
+        auth_type <%= vrrp[:auth_type] %>
+        auth_pass <%= vrrp[:auth_pass] %>
+    }
+    virtual_ipaddress {
+<% vrrp[:virtual_addresses].each do |addr| -%>
+        <%= addr %>
+<% end %>
+    }
+}
+<% end %>

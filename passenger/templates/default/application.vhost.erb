@@ -1,0 +1,70 @@
+<VirtualHost *:80>
+	ServerName <%= @server_name %>
+  DocumentRoot <%= @docroot %>
+	RailsAllowModRewrite on
+  RailsBaseURI /
+  RailsMaxPoolSize <%= @max_pool_size %>
+  RailsPoolIdleTime 3600
+  RailsEnv 'production'
+  
+	ErrorLog      /u/logs/apps/<%= @name %>_error.log
+	CustomLog     /u/logs/apps/<%= @name %>_access.log combined
+
+	ErrorDocument 404 /404.html
+	ErrorDocument 500 /500.html
+
+	RewriteEngine On
+
+	# Handle maintenance mode
+	RewriteCond %{DOCUMENT_ROOT}/system/maintenance.html -f
+	RewriteCond %{SCRIPT_FILENAME} !maintenance.html  
+	RewriteRule ^/(.*)$ /system/maintenance.html [L]
+
+	<Directory <%= @docroot %>>
+    Options FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+  </Directory>
+</VirtualHost>
+
+<VirtualHost *:443>
+	ServerName <%= @server_name %>
+  DocumentRoot <%= @docroot %>
+	RailsAllowModRewrite on
+  RailsBaseURI /
+  RailsMaxPoolSize <%= @max_pool_size %>
+  RailsPoolIdleTime 3600
+  RailsEnv 'production'
+  
+	ErrorLog        /u/logs/apps/<%= @name %>_error.log
+	CustomLog       /u/logs/apps/<%= @name %>_access.log combined
+
+	ErrorDocument 404 /404.html
+	ErrorDocument 500 /500.html
+
+	RewriteEngine On
+
+	# Handle maintenance mode
+	RewriteCond %{DOCUMENT_ROOT}/system/maintenance.html -f
+	RewriteCond %{SCRIPT_FILENAME} !maintenance.html  
+	RewriteRule ^/(.*)$ /system/maintenance.html [L]
+
+  # Turn on SSL
+  SSLEngine  On
+
+  # Enforce a decent level of encryption
+  SSLProtocol -ALL +SSLv3 +TLSv1
+  SSLCipherSuite ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM
+  
+  # Cert and key
+  SSLCertificateFile      /etc/certs/wildcard_37signals_com.crt
+  SSLCertificateKeyFile   /etc/certs/wildcard_37signals_com.key
+  SSLCertificateChainFile /etc/certs/gd_intermediate_bundle.crt
+
+  # Compensate for broken browsers.
+  SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
+
+  # Make Mongrel assume SSL
+  RequestHeader append X_FORWARDED_PROTO "https" 
+</VirtualHost>

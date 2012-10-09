@@ -1,0 +1,58 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures mysql",
+  "providing": {
+    "mysql::mmm": [
+
+    ],
+    "mysql::client": [
+
+    ],
+    "mysql::slave_warmer": [
+
+    ],
+    "mysql::server": [
+
+    ]
+  },
+  "name": "mysql",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "mysql::mmm": "",
+    "mysql::client": "",
+    "mysql::slave_warmer": "",
+    "mysql::server": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "maatkit": [
+
+    ],
+    "perl": [
+
+    ]
+  }
+}

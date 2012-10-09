@@ -1,0 +1,5 @@
+default.netboot[:begin_ip_range]  = "10.10.15.1"
+default.netboot[:end_ip_range]    = "10.10.15.254"
+default.netboot[:default_gateway] = "10.10.0.1"
+default.netboot[:netmask]         = "255.255.240.0"
+default.netboot[:tftp_server_ip]  = "10.10.0.254"

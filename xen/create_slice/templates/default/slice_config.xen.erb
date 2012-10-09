@@ -1,0 +1,10 @@
+kernel = "/boot/vmlinuz-2.6.18-92.1.6.el5xen"
+ramdisk = "/boot/initrd-2.6.18-92.1.6.el5xen.img"
+extra = "xencons=tty maxmem=<%= @maxmem %>M"
+name = "<%= @name %>"
+disk = [ 'phy:mapper/VolGroupXen-<%= @name %>_root,xvda,w', 'phy:mapper/VolGroupXen-<%= @name %>_swap,xvdb,w' ]
+vif = [ 'mac=<%= @mac_address %>, bridge=br0' ]
+bootloader="/usr/bin/pygrub"
+vcpus=<%= @vcpus %>
+memory="<%= @memory %>"
+maxmem="<%= @maxmem %>"

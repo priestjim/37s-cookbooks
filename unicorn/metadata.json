@@ -1,0 +1,56 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "unicorn",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures unicorn",
+  "providing": {
+    "unicorn": [
+
+    ],
+    "unicorn::apps": [
+
+    ]
+  },
+  "name": "unicorn",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "unicorn": "",
+    "unicorn::apps": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "runit": [
+
+    ],
+    "nginx": [
+
+    ],
+    "apache2": [
+
+    ],
+    "ruby": [
+
+    ]
+  }
+}

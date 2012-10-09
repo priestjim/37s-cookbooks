@@ -1,0 +1,8 @@
+maintainer       "37signals, LLC"
+maintainer_email "sysadmins@37signals.com"
+license          "Apache 2.0"
+description      "Installs MCollective"
+version          "0.1"
+supports         "ubuntu"
+depends          "activemq"
+depends          "bluepill"

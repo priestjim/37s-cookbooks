@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+#
+# Uses tinder to say things in a campfire room
+#
+#
+
+require 'rubygems'
+require 'tinder'
+require 'choice'
+
+Choice.options do
+    header ''
+    header 'Specific options:'
+
+    option :subdomain do
+      short '-s'
+      long '--subdomain=SUBDOMAIN'
+      desc 'The Campfire subdomain'
+    end
+
+    option :room do
+      short '-r'
+      long '--room=ROOM'
+      desc 'The target Campfire room name'
+    end
+
+    option :message do
+      short '-m'
+      long '--message=MESSAGE'
+      desc 'The desired message'
+    end
+
+    option :ssl do
+      short '-S'
+      long '--ssl'
+      desc 'Use SSL connections'      
+    end
+
+    option :login do
+      short '-l'
+      long '--login=LOGIN'
+      desc 'Campfire login'
+    end
+    
+    option :password do
+      short '-p'
+      long '--password=PASSWORD'
+      desc 'Campfire password'      
+    end
+    
+    separator ''
+    separator 'Common options: '
+
+    option :help do
+      long '--help'
+      desc 'Show this message'
+    end
+  end
+
+choices = Choice.choices
+
+if choices[:subdomain] && choices[:room] && choices[:message]
+  campfire = Tinder::Campfire.new(choices[:subdomain], :ssl => choices[:ssl])
+  campfire.login choices[:login], choices[:password]
+  room = campfire.find_room_by_name choices[:room]
+  room.speak choices[:message]  
+end
+

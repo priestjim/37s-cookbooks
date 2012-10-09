@@ -1,0 +1,4 @@
+location ~ <%= @node[:nginx][:expires][:regex] %> {
+  expires <%= @node[:nginx][:expires][:time] %>;
+  break;
+}

@@ -1,0 +1,30 @@
+# Automatically generated via Chef
+
+<% @internal_zones.each do |zone| %>
+.<%= zone[:domain] %>:<%= zone[:ip] %>:a
+<% end %>
+
+# Delegated zones
+<% @zones.each do |zone| %>
+<% zone[:nameservers].each do |hostname, ip| %>
+&<%= zone[:subdomain] %>:<%= ip %>:<%= hostname %>:<%= zone[:ttl] || "300" %>
+<% end %>
+<% end %>
+
+# Records:
+<% @dns_records.each do |record| %>
+<% if record['type'] == "A" %>
+=<%= record[:fqdn] %>:<%= record[:ipaddress] %>:<%= record[:ttl] || "300" %>
+<% end %>
+<% end %>
+
+# Devices without chef clients
+
+<% @devices.each do |device| %>
+=<%= device[:fqdn] %>:<%= device[:ipaddress] %>:300
+  <% if device['aliases'] %>
+    <% device['aliases'].each do |dns_alias| %>
+C<%= dns_alias %>:<%= device[:fqdn] %>:300
+    <% end %>
+  <% end %>
+<% end %>

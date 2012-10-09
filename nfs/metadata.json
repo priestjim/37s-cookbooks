@@ -1,0 +1,49 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures NFS",
+  "providing": {
+    "nfs": [
+
+    ],
+    "nfs::client": [
+
+    ],
+    "nfs::server": [
+
+    ]
+  },
+  "name": "nfs",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "nfs": "",
+    "nfs::client": "",
+    "nfs::server": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+
+  }
+}

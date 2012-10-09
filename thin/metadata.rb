@@ -1,0 +1,7 @@
+maintainer        "thin"
+maintainer_email  "sysadmins@37signals.com"
+description       "Configures thin, a Ruby web server"
+version           "0.1"
+depends           "ruby"
+depends           "nginx"
+depends           "apache2"

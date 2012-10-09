@@ -1,0 +1,32 @@
+<VirtualHost *:443>
+
+  DocumentRoot /usr/share/gitweb
+  ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+
+  SSLEngine on
+  SSLCertificateFile    /etc/ssl/certs/ssl-cert-snakeoil.pem
+  SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+
+  RewriteEngine on
+  
+  # support gitc-style URLs
+   
+  RewriteRule ^/c/(.+)/(.+)$ /gitweb/$1.git?a=commitdiff&h=$2 [R,L]
+  
+  RewriteRule ^/gitweb/([a-zA-Z0-9_\/-]+\.git)/?(\?.*)?$ /cgi-bin/gitweb.cgi/$1 [L,PT]
+  
+  Alias /gitweb /usr/share/gitweb
+  
+  <Directory /usr/share/gitweb>
+    Options Indexes FollowSymlinks ExecCGI
+    DirectoryIndex /cgi-bin/gitweb.cgi
+    AllowOverride None
+  </Directory>
+  
+  <Directory /usr/share/gitweb>
+    Order allow,deny
+    Allow from all
+    AllowOverride None
+  </Directory>
+
+</VirtualHost>

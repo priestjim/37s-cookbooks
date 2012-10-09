@@ -1,0 +1,29 @@
+active_master_role writer
+
+<host default>
+  cluster_interface    eth0
+  pid_path             /var/run/mmmd_agent.pid
+  bin_path             /usr/bin/mysql-mmm/
+
+  replication_user <%= @node[:mysql][:mmm][:replication_user] %>
+  replication_password <%= @node[:mysql][:mmm][:replication_password] %>
+
+  agent_user <%= @node[:mysql][:mmm][:agent_username] %>
+  agent_password <%= @node[:mysql][:mmm][:agent_password] %>
+</host>
+
+<% @node[:mysql][:mmm][:hosts].each do |name, config| %>
+<host <%= name %>>
+  ip   <%= config[:ip_address] %>
+  mode <%= config[:mode] %>
+  <% if config[:peer] %>peer <%= config[:peer] %><% end -%>
+</host>
+<% end %>
+
+<% @node[:mysql][:mmm][:roles].each do |role, config| %>
+<role <%= role %>>
+  hosts <%= @node[:mysql][:mmm][:hosts].map { |k,v| v[:roles].include?("writer") ? k : nil }.compact.join(', ') %>
+  ips   <%= config[:ips].join(', ') %>
+  mode  <%= config[:mode] %>
+</role>
+<% end %>

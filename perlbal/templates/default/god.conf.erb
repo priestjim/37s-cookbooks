@@ -1,0 +1,32 @@
+God.watch do |w|
+  w.name = "perlbal"
+  w.interval = 30.seconds
+  w.start = "/etc/init.d/perlbal start"
+  w.stop = "/etc/init.d/perlbal stop"
+  w.restart = "/etc/init.d/perlbal restart"
+  w.start_grace = 10.seconds
+  w.restart_grace = 10.seconds
+  w.pid_file = "/etc/service/perlbal/supervise/pid"
+
+  
+  w.restart_if do |restart|
+    restart.condition(:memory_usage) do |c|
+      c.above = 1400.megabytes
+      c.times = [3, 5] # 3 out of 5 intervals
+      c.notify = 'ops'
+    end
+  end
+  
+  # lifecycle
+  w.lifecycle do |on|
+    on.condition(:flapping) do |c|
+      c.to_state = [:start, :restart]
+      c.times = 5
+      c.within = 5.minute
+      c.transition = :unmonitored
+      c.retry_in = 10.minutes
+      c.retry_times = 5
+      c.retry_within = 2.hours
+    end
+  end
+end

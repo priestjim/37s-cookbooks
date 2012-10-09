@@ -1,0 +1,79 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures rails",
+  "providing": {
+    "rails::delayed_job": [
+
+    ],
+    "rails::app_dependencies": [
+
+    ],
+    "rails::web": [
+
+    ],
+    "rails::apps": [
+
+    ]
+  },
+  "name": "rails",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "rails::delayed_job": "",
+    "rails::app_dependencies": "",
+    "rails::web": "",
+    "rails::apps": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "logrotate": [
+
+    ],
+    "runit": [
+
+    ],
+    "unicorn": [
+
+    ],
+    "thin": [
+
+    ],
+    "ssl_certificates": [
+
+    ],
+    "passenger": [
+
+    ],
+    "bundler": [
+
+    ],
+    "aws": [
+
+    ],
+    "bluepill": [
+
+    ]
+  }
+}

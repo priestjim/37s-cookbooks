@@ -1,0 +1,51 @@
+user <%= @node[:nginx][:user] %> <%= @node[:nginx][:group] %>;
+worker_processes  <%= @node[:nginx][:worker_processes] %>;
+
+error_log  <%= @node[:nginx][:log_dir] %>/error.log;
+pid        /var/run/nginx.pid;
+
+events {
+  worker_connections  <%= @node[:nginx][:worker_connections] %>;
+  use epoll;
+}
+
+worker_rlimit_nofile 10240;
+
+http {
+  include       <%= @node[:nginx][:dir] %>/mime.types;
+  default_type  application/octet-stream;
+
+  access_log	<%= @node[:nginx][:log_dir] %>/access.log;
+   
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay on;
+  client_max_body_size 1024m;
+
+  ssl_session_cache    shared:SSL:10m;
+  ssl_session_timeout  8m;
+  ssl_protocols SSLv3 TLSv1;
+  ssl_ciphers ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:-LOW:-SSLv2:-EXP;
+  ssl_prefer_server_ciphers on;
+  
+  <% if @node[:nginx][:keepalive] == "on" %>
+  keepalive_timeout  <%= @node[:nginx][:keepalive_timeout] %>;
+  <% end %>
+
+  gzip  <%= @node[:nginx][:gzip] %>;
+  <% if @node[:nginx][:gzip] == "on" %>
+  gzip_http_version <%= @node[:nginx][:gzip_http_version] %>;
+  gzip_comp_level <%= @node[:nginx][:gzip_comp_level] %>;
+  gzip_proxied <%= @node[:nginx][:gzip_proxied] %>;
+  gzip_types <%= @node[:nginx][:gzip_types].join(' ') %>;
+  <% end %>
+
+  log_format main '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status  $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+  server_names_hash_bucket_size <%= @node[:nginx][:server_names_hash_bucket_size] %>;
+
+  include <%= @node[:nginx][:dir] %>/conf.d/*.conf;
+  include <%= @node[:nginx][:dir] %>/sites-enabled/*;
+}

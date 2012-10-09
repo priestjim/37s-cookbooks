@@ -1,0 +1,1092 @@
+#!/usr/bin/perl
+#
+# $Id: valtz,v 0.7 2003/07/10 16:39:30 magnus Exp $
+#
+# <BSD-license>
+#
+# Copyright (c) 2003, Magnus Bodin, <magnus@bodin.org>, http://x42.com
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# Neither the name of Magnus Bodin, x42.com nor the names of its
+# contributors may be used to endorse or promote products derived from
+# this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# </BSD-license>
+
+
+use strict;
+use Getopt::Std;
+use File::Temp qw/ tempfile /;
+use File::Copy qw/ move /;
+
+
+my $VERSION = $1 if '$Revision: 0.7 $' =~ /(\d+\.\d+)/;
+my $COPYRIGHT = '; (C) 2003 Magnus Bodin, http://x42.com/software/';
+
+$| = 1;
+my %opt;
+getopts('?fFhHiIqrRstT:x', \%opt);
+
+
+my $FILESUFFIXREGEXP = '('.join('|', qw/
+        ,v ~ .bak .log .old .swp .tmp
+    /).')$';
+
+my $verrs_total = 0;
+my $perrs_total = 0;
+
+
+##
+# global location registry
+# (reset for every zone file)
+my %loreg; 
+
+# NOTE : DO NOT CHANGE the id numbers
+my %validation_msg = (
+    1001 => 'badly formed; should be just two ASCII letters',
+    1002 => 'location is not previously defined in a %-line',
+    1003 => 'invalid syntax',
+    1004 => 'invalid syntax of integer',
+    1005 => 'parts must only contain ASCII letters, digits and - characters',
+    1006 => 'parts must not begin with the - character',
+    1007 => 'parts must not end with the - character',
+    1008 => 'integer out of bounds',
+    1009 => 'must have at least three labels to be valid as mail address',
+    1010 => 'must not 2(NS), 5(CNAME), 6(SOA), 12(PTR), 15(MX) or 252(AXFR)',
+);
+
+# NOTE : ONLY translate the right-hand part
+my %token_name = (
+    'lo' => 'Location',
+    'ipprefix' => 'IP prefix',
+    'fqdn' =>  'Domain name',
+    'ip' => 'IP number',
+    'x' => 'Host name',
+    'ttl' => 'TTL',
+    'timestamp' => 'Timestamp',
+    'lo' => 'Location',
+    'dist' => 'Distance',
+    's' => 'Text',
+    'p' => 'Pointer',
+    'mname' => 'Master name',
+    'rname' => 'Role name',
+    'ser' => 'Serial number',
+    'ref' => 'Refresh time',
+    'ret' => 'Retry time',
+    'exp' => 'Expire time',
+    'min' => 'Minimum time',
+    'n' => 'Record type number',
+    'rdata' => 'Resource data',
+);
+
+my %record_type = (
+    '%' => ':location',
+    '.' => 'NS',
+    '&' => 'NS+A',
+    '=' => 'A+PTR',
+    '+' => 'A',
+    '@' => 'MX+A?',
+    '#' => ':comment',
+    '-' => ':disabled +',
+    "'" => 'TXT',
+    '^' => 'PTR',
+    'C' => 'CNAME',
+    'Z' => 'SOA',
+    ':' => 'GENERIC'
+);
+
+# NOTE : This should NOT be translated!
+my %line_type = (
+    '%' => [ ':location', 'lo:ipprefix', 'lo' ],
+    '.' => [ 'NS(+A?)', 'fqdn:ip:x:ttl:timestamp:lo', 'fqdn' ],
+    '&' => [ 'NS(+A?)', 'fqdn:ip:x:ttl:timestamp:lo', 'fqdn' ],
+    '=' => [ 'A+PTR', 'fqdn:ip:ttl:timestamp:lo', 'fqdn:ip' ],
+    '+' => [ 'A', 'fqdn:ip:ttl:timestamp:lo', 'fqdn:ip' ],
+    '@' => [ 'MX(+A?)', 'fqdn:ip:x:dist:ttl:timestamp:lo', 'fqdn' ],
+    '#' => [ ':comment', '', '' ],
+    '-' => [ ':disabled +', '', '' ],
+    "'" => [ 'TXT', 'fqdn:s:ttl:timestamp:lo', 'fqdn:s' ],
+    '^' => [ 'PTR', 'fqdn:p:ttl:timestamp:lo', 'fqdn:p' ],
+    'C' => [ 'CNAME', 'fqdn:p:ttl:timestamp:lo', 'fqdn:p' ],
+    'Z' => [ 'SOA', 'fqdn:mname:rname:ser:ref:ret:exp:min:ttl:timestamp:lo',
+            'fqdn:mname:rname' ],
+    ':' => [ 'GENERIC', 'fqdn:n:rdata:ttl:timestamp:lo', 'fqdn:n:rdata' ]
+);
+
+
+sub validate_integer
+{
+    my ($s, $boundary) = @_;
+    my $result = 0;
+
+    if ($s =~ /^(\d+)$/)
+    {
+        my $i = $1;
+
+        $result = 1008 if $boundary && ($i >= $boundary); 
+    }
+    else
+    {
+        $result = 1004;
+    }
+
+    return $result;
+}
+
+
+# NOTE : No translation here!
+my %token_validator = (
+    'lo' => [ 2, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        return 1001 unless $s =~ /^[a-z][a-z]$/i;
+        if ($type eq '%')
+        {
+            $loreg{$s}++;
+        }
+        else
+        {
+            return 1002 unless exists($loreg{$s});
+        }
+        return $result;
+    }],
+    'ipprefix' => [ 3, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        if ($s =~ /^(\d+)(\.(\d+)(\.(\d+)(\.(\d+))?)?)?$/)
+        {
+            my ($a, $b, $c, $d) = ($1, $3, $5, $7);
+            $a ||= 0; 
+            $b ||= 0; 
+            $c ||= 0; 
+            $d ||= 0; 
+            if (($a > 255) || ($b > 255) || ($c > 255) || ($d > 255)) 
+            {
+                $result = 1003;
+            }
+        }
+        else
+        {
+            $result = 1003;
+        }
+        return $result;
+    }],
+    'fqdn' => [ 3, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        # remove OK wildcard prefixing, to simplify test.
+        $s =~ s/^\*\.([a-z0-9].*)$/$1/i;
+        # check all parts
+        for my $hostpart (split /\./, $s)
+        {
+            return 1005 unless $hostpart =~ /^[-a-z0-9]+$/i;
+            return 1006 if $hostpart =~ /^-/;
+            return 1007 if $hostpart =~ /-$/;
+        }
+        return $result;
+    }],
+    'ip' => [ 4, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        if ($s =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)\.?$/)
+        {
+            my ($a, $b, $c, $d) = ($1, $3, $5, $7);
+            $a ||= 0; 
+            $b ||= 0; 
+            $c ||= 0; 
+            $d ||= 0; 
+            if (($a > 255) || ($b > 255) || ($c > 255) || ($d > 255)) 
+            {
+                $result = 1003
+            }
+        }
+        else
+        {
+            $result = 1003;
+        }
+        return $result;
+    }],
+    'x' => [ 5, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        # check all parts
+        for (split /\./, $s)
+        {
+            return 1005 unless /^[-[a-z0-9]+$/i;
+            return 1006 if /^-/;
+            return 1007 if /-$/;
+        }
+        return $result;
+    }],
+    'ttl' => [ 6, sub {
+        my ($type, $s) = @_;
+    my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'timestamp' => [ 7, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'dist' => [ 9, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 65536);
+        return $result;
+    }],
+    's' => [ 10, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        # TODO : Validation needed? 
+        return $result;
+    }],
+    'p' => [ 11, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+        # check all parts
+        for (split /\./, $s)
+        {
+            return 1005 unless /^[-[a-z0-9]+$/i;
+            return 1006 if /^-/;
+            return 1007 if /-$/;
+        }
+        return $result;
+    }],
+    'mname' => [ 12, sub { 
+        my ($type, $s) = @_;
+        my $result = 0;
+        # check all parts
+        for (split /\./, $s)
+        {
+            return 1005 unless /^[-[a-z0-9]+$/i;
+            return 1006 if /^-/;
+            return 1007 if /-$/;
+        }
+        return $result;
+    }],
+    'rname' => [ 13, sub {
+        my ($type, $s) = @_;
+        my $result = 0;
+    
+        # check all parts
+        my @parts = split /\./, $s;
+        return 1009 if @parts < 3;
+
+        for (split /\./, $s)
+        {
+            return 1005 unless /^[-[a-z0-9]+$/i;
+            return 1006 if /^-/;
+            return 1007 if /-$/;
+        }
+        return $result;
+    }],
+    'ser' => [ 14, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'ref' => [ 15, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'ret' => [ 16, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'exp' => [ 17, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'min' => [ 18, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 2**32);
+        return $result;
+    }],
+    'n' => [ 19, sub {
+        my ($type, $s) = @_;
+        my $result = validate_integer($s, 65535);
+    
+        return 1010 if ($s==2)||($s==5)||($s==6)||($s==12)||($s==15)||($s=252);
+
+        return $result;
+    }],
+    'rdata' => [ 20, sub {
+        my ($type, $s) = @_;
+        # TODO : Validation needed? 
+        my $result = 0;
+        return $result;
+    }],
+
+
+
+);
+
+
+sub validate_line ($)
+{
+    my ($s) = @_;
+
+    my $result = [ 0, '', '', [] ];
+
+    $s =~ s/\s+$//;
+
+    if (length($s))
+    {
+        my $type = substr($s, 0, 1); $$result[2] = $type;
+        my $rest = substr($s, 1);
+        if (exists($line_type{$type}))
+        {
+            my $lt = $line_type{$type};
+            my @mask = split /\:/, $line_type{$type}->[1];
+            my @mandatory = split /\:/, $line_type{$type}->[2];
+
+            if (@mask > 0)
+            {
+                my $c = 0;
+                my @tokens = split /\:/, $rest;
+                my $ip = '';
+
+                my $vals = @tokens;
+                $vals = $#mandatory if $#mandatory > $vals;
+
+                for my $t (0..$vals)
+                {
+                    my $token = $tokens[$t];
+                    # sanity check; should not fail
+                    if ($c > $#mask)
+                    {
+                        # silently ignore excessive fields
+                        # as tinydns-data does now
+                    }
+                    elsif (exists($token_validator{$mask[$c]}))
+                    {
+                        my $validator = $token_validator{$mask[$c]};
+
+                        if (length($token))
+                        {
+                            # Remember fqdn for later
+                            if (($c eq 0) && ($mask[0] eq 'fqdn'))
+                            {
+                                my $tmp = $token;
+                                $tmp =~ s/\.$//;
+                                push @{$$result[3]}, $tmp;
+                            }
+
+                            # Remember x as fqdn IF ip is specified
+                            if (($mask[$c] eq 'ip') && (length($token)))
+                            {
+                                $ip = $token;
+                            }
+              
+                            #
+                            if (length($ip) && ($mask[$c] eq 'x'))
+                            {
+                                my $tmp = $token;
+                                $tmp =~ s/\.$//;
+                                push @{$$result[3]}, $tmp;
+                            }
+                
+                            # perform validation
+                            
+                            my $tv = &{$$validator[1]}($type, $token);
+                            if ($tv)
+                            {
+                                $$result[0] ^= (2 ** $$validator[0]);
+                                $$result[1] .= 
+                                  "\npos $c; $mask[$c]; $validation_msg{$tv}";
+                            }
+                        }
+                        elsif ($mandatory[$c] eq $mask[$c])
+                        {
+                            my $mand = 1;
+                            $mand = 0 if ($opt{r}) && ($mask[$c] eq 'fqdn');
+                            $mand = 0 if ($opt{R}) && ($mask[$c] eq 'mname');
+                            $mand = 0 if ($opt{R}) && ($mask[$c] eq 'p');
+                            $mand = 0 if ($opt{R}) && ($mask[$c] eq 'rdata');
+                            $mand = 0 if ($opt{i}) && ($mask[$c] eq 'ip');
+
+                            if ($mand)
+                            {
+                                $$result[0] ^= (2 ** $$validator[0]); 
+                                $$result[1] .= "\npos $c; $mask[$c]; ".
+                                $token_name{$mask[$c]}.' is mandatory';
+                            }
+                        }
+                        # else ignore nonmandatory blanks
+
+                    }
+                    else
+                    {
+                        # somebody has modified program in a wrong way
+                        $result = [ 1,
+                          "VALIDATOR FAILS ON TOKENS OF TYPE ".$mask[$c]." $c" ];
+                    }
+                    $c++;
+                }
+            }
+            
+            if ($$result[0])
+            {
+                $$result[1] = "expected: ".$line_type{$type}->[1]."\n".
+                    $$result[1];
+            }
+
+        }
+        else 
+        {
+            $result = [ 1, sprintf("unknown record type: #%02x",
+                ord($type)) ];
+        }
+    }
+
+    $$result[1] =~ s/^\n+//;
+    $$result[1] =~ s/\n+/\n/g;
+
+    # result is now [ iErrno, sErrtxt, sRecordType, [ sFQDN ] ] 
+    return $result;
+}
+
+sub p ($$)
+{
+    my ($fhv, $line) = @_;
+    for my $fh (@{$fhv})
+    {
+        print $fh $line."\n";
+    }
+}
+
+sub funiq (@)
+{
+    my @files = @_;
+    my %ufiles;
+    for my $curpat (@files)
+    {
+        for my $elem (glob $curpat)
+        {
+            $ufiles{$elem}++;
+        }
+    }
+    return [ sort keys %ufiles ];
+}
+
+sub read_file ($$)
+{
+    my ($vfile, $cache) = @_;
+    my %vresult;
+    my $result = [ ];
+
+    if (exists $cache->{file}->{$vfile})
+    {
+        $result = $cache->{file}->{$vfile};
+    }
+    else
+    {
+        if (open(FILER, $vfile))
+        {
+            while (<FILER>)
+            {
+                chomp;
+                s/^\s+//;
+                s/\s+$//;
+                next if /^#/;
+                next if /^$/;
+                $vresult{$_}++;
+            }
+            close FILER;
+            $cache->{file}->{$vfile} = [ sort keys %vresult ];
+            $result = $cache->{file}->{$vfile};
+        }
+    }
+
+    return $result;
+}
+
+
+sub read_filter ($$)
+{
+    my ($file, $cache) = @_;
+    my $f = {};
+
+    if (open(FILEF, $file))
+    {
+        while (<FILEF>)
+        {
+            chomp;
+            s/^\s+//;
+            s/\s+$//;
+            
+            if (/^(\w+)\s+(.+)$/)
+            {
+                my ($key, $value) = ($1, $2);
+                my (@values, @tempvalues);
+                if ($value =~ m#^file:(.+)#)
+                {
+                    my $vfile = $1;
+                    @tempvalues = @{read_file($vfile, $cache)};
+                }
+                else
+                {
+                    @tempvalues = ( $value );
+                }
+
+                if ($key =~ /^zonefiles?$/)
+                {
+                    # This is a globbing action
+                    for (@tempvalues)
+                    {
+                        push @values, @{funiq($_)};
+                    }
+                }
+               else
+               {
+                    @values = @tempvalues;
+               }
+
+               for (@values)
+               {
+                    $f->{lc $key}->{$_}++;
+               }
+           }
+        }
+        close FILEF;
+    }
+    else
+    {
+        print STDERR "Warning: Couldn't open filterfile: $file; $!\n";
+    }
+
+    return $f;
+}
+
+sub regexped_patterns ($)
+{
+    my ($h) = @_;
+    my $result = [ ];
+
+    for my $pat (keys %{$h})
+    {
+        unless ($pat =~ /^\^.+\$$/)
+        {
+        $pat =~ s/\.+$//;
+
+            # fix a regexp for the lazy notation
+            $pat =~ s/^[\*\.]+//;
+            $pat =~ s/\./\\./g;
+            $pat = '^(.*\\.)?'.$pat.'\.?$';
+        }
+        push @{$result}, $pat;
+    }
+    return $result;
+}
+
+
+sub check_pattern ($$)
+{
+    my ($pattern, $fqdn) = @_;
+    my $result = 0;
+
+    if ($fqdn =~ /$pattern/)
+    {
+        $result = 1;
+    }
+    else
+    {
+        $result = 0;
+    }
+
+    return $result;
+}
+
+
+sub make_char_regexp ($)
+{
+    my ($chars) = @_;
+    my @rc;
+    my $regexp;
+
+    for (split /\s+/, $chars)
+    {
+        if (/^\d+$/)
+        {
+            $regexp .= sprintf("\\%03o", $_);
+        }
+        else
+        {
+            for (split //, $_)
+            {
+                $regexp .= "\\$_";
+            }
+        }
+    }
+
+    if (length($regexp))
+    {
+        $regexp = "[$regexp]";
+    }
+    else
+    {
+        $regexp = '.';
+    }
+
+    return $regexp;
+}
+
+
+sub do_filterfile ($$)
+{
+    my ($filterfile, $cache) = @_;
+    my $result = '';
+    my $output = [ \*STDERR ];
+    my @extralogs;
+
+    my $f = read_filter($filterfile, $cache);
+
+    $$f{allowtype} = (keys %{$$f{allowtype}})[0];
+    $$f{allowtype} .= $opt{T};
+    
+    my $allowtyperegex = make_char_regexp($$f{allowtype});
+
+    if ($$f{extralog})
+    {
+        for my $logfile (sort keys %{$$f{extralog}})
+        {
+            my ($fname, $fhandle);
+            # open logfiles and put them int @{$output};
+            ($fhandle, $fname) = tempfile();
+            if ($fhandle)
+            {
+                push @{$output}, $fhandle;
+                push @extralogs, [ $fhandle, $fname, $logfile ];
+            }
+            else
+            {
+                print STDERR "Warning: Couldn't create tempfile for ${logfile}.\n";
+            }
+        }
+    }
+
+    my @zonefiles = sort keys %{$$f{zonefile}};
+    if (@zonefiles == 0)
+    {
+        push @zonefiles, '-';
+    }
+    for my $zonefile (@zonefiles)
+    {
+        unless ($opt{s})
+        {
+            next if $zonefile =~ /$FILESUFFIXREGEXP/i;
+        }
+ 
+        my $info = 0;
+    my $filehandle = \*STDIN;
+    my $fopen = 1;
+    if ($zonefile ne '-')
+    {
+        $fopen = open( $filehandle, $zonefile );
+    }
+        if ($fopen)
+        {
+            my $temp = ($zonefile eq '-') ? '<STDIN>' : $zonefile;
+            p $output, "File $temp";
+    
+            %loreg = ();
+            my $errs = 0;
+            my $lno = 0;
+            while (<$filehandle>)
+            {
+                $lno++;
+                my $line = $_;
+                chomp($line);
+                my $v = validate_line($line);
+                for ($v)
+                {
+                    my $ok = 1;
+                    my $fqdnok = 1;
+                    my $reason = '';
+
+                    if ($$v[0])
+                    {
+                        $errs++;
+                        $verrs_total++;
+                        $$v[1] =~ s/\n/\n    /g;
+                        p $output, "  line $lno; err $$v[0] $line\n    ".$$v[1];
+                    }
+                    else
+                    {
+                        if (length($$v[2]))
+                        {
+                            if ($$v[2] !~ /$allowtyperegex/)
+                            {
+                                $ok=0;
+                                if (($$v[2] ne '#') || ($opt{t} == 1))
+                                {
+                                     $errs++;
+                                     $perrs_total++;
+                                     p $output, "  line $lno; err -1 $line";
+                                     p $output, "    record type $$v[2] disallowed; allowed: $$f{allowtype}";
+                                }
+                            }
+                            else
+                            {
+                                # just check fqdn if record contains it
+                                if (@{$$v[3]})
+                                {
+                                    # Check $$v[3] against allowed fqdn:s:wq!
+                                    if (keys %{$$f{deny}})
+                                    {
+                                        # 
+                                        my $patterns = regexped_patterns($$f{deny});
+                                        # Default ALLOW ALL
+                                        $ok = $fqdnok = 1;
+                                        $reason = 'default allow ^.*$';
+                    
+                                        for my $pat (@{$patterns})
+                                        {
+                                            for (@{$$v[3]})
+                                            {
+                                                if (check_pattern($pat, $_))
+                                                {
+                                                    $ok = $fqdnok = 0;
+                                                    $reason = 'deny '.$pat;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    elsif (keys %{$$f{allow}})
+                                    {
+                                        my $patterns = regexped_patterns($$f{allow});
+                                        # Default DENY ALL
+                                        $ok = $fqdnok = 0;
+                                        $reason = 'default deny ^.*$';
+
+                                        for my $pat (@{$patterns})
+                                        {
+                                            for (@{$$v[3]})
+                                            {
+                                                if (check_pattern($pat, $_))
+                                                {
+                                                    $ok = $fqdnok = 1;
+                                                    $reason = $pat;
+                                                }
+                                            }
+                                        }
+                                    } # if deny/allow
+                                } # if fqdn 
+                            } # if recordtype ok
+                        } # 
+
+                        if ($ok && length($line))
+                        {
+                            print STDOUT "$line\n" unless $opt{q};
+                        }
+                        else
+                        {
+                            if ($fqdnok == 0)
+                            {
+                                $errs++;
+                                $perrs_total++;
+                                p $output, "  line $lno; err -2; $line"; 
+                                p $output, "    use of fqdn denied; $reason";
+                                if ($opt{I})
+                                {
+                                    print STDOUT "# line $lno; err -2; $line\n"; 
+                                    print STDOUT "#   use of fqdn denied; $reason\n";
+                                }    
+                            }
+                        }
+                    }
+                } # for ($v)
+            } # while (<$filehandle>)
+            close $filehandle unless $zonefile eq '-';
+            my $plur = ($errs == 1) ? '' : 's';
+            p $output, "$lno lines, $errs error${plur}.";
+        }
+        else
+        {
+            p $output, "Warning: Trouble opening '$zonefile'; $!";
+        }
+    }
+
+    
+      # Close all extra logfiles
+    for my $el (@extralogs)
+    {
+        if (close($$el[0]))
+        {
+            if (move($$el[1], $$el[2]))
+            {
+                print STDERR "Copy of logfile portion to $$el[2]\n";
+            }
+            else
+            {
+                print STDERR "Warning: Couldn't rename tempfile to $$el[2].\n";
+                unlink $$el[1];
+            }
+        }
+        else
+        {
+            print STDERR "Warning: Couldn't close tempfile for $$el[2].\n";
+            unlink $$el[1];
+        }
+    }
+
+    return $result;
+}
+
+#
+## Start
+#
+
+my $files = funiq(@ARGV);
+
+
+if ($opt{h} || $opt{H} || $opt{'?'})
+{
+    print <<"--EOT";
+valtz $VERSION, $COPYRIGHT 
+validates tinydns-data zone files
+Usage:
+  $0 [-hfFqrRiItTx] <file(s)>
+
+  -h shows this help.
+
+
+  -f filter (don't just validate) file and output accepted lines to STDOUT.
+     
+
+  -F treat files as filter configuration files for more advanced filtering.
+     These filterfiles one or several of the following filter directives:
+
+     zonefile <zonefilepath>
+     zonefile file:<path to textfile including zonefilepaths>
+        Defines the file(s) to be filtered. Can be a globbed value, like
+        /var/zones/external/*
+
+     extralog <logfile>
+        Defines an extra logfile that the STDERR output will be copied for
+        this specific filterfile. Useful if you have a lot of filterfiles
+        and want to separate the logs.
+
+     deny <zonepattern>
+     deny file:<path to <zonepatternfile>
+        Defines a zonepattern to explicitly DENY after implicitly allowing all.
+        (cannot be combined with allow)
+
+     allow <zonepattern>
+     allow file:<path to <zonepatternfile>
+        Defines a zonepattern to explicitly ALLOW after implicitly denying all.
+
+     allowtype <recordtype character(s)>
+        Explicitly sets the allowed recordtypes. Note that even comments
+        has to be allowed (but these will not result in errors unless -t)
+        to be copied to the output.
+
+     Multiple zonefile, allow- and deny-lines are allowed, but also the
+     alternative file:-line that points to a textfile containing one
+     value per line.
+    
+    
+  -r allows fqdn to be empty thus denoting the root.
+     This is also allowed per default when doing implict allow - see deny,
+     or when specifying 'allow .', i.e. explictly allowing root as such.
+     (cannot be combined with deny)
+
+     
+  -R relaxes the validation and allows empty mname and p-fields.xi
+     This is probably not very useful.
+
+     
+  -i allows the ip-fields to be empty as well. These will then not generate any
+     records.
+
+
+  -I Include rejected lines as comments in output (valid when filtering).
+
+ 
+  -q Do not echo valid lines to STDOUT.
+    
+  -s DO NOT ignore files ending with ,v ~ .bak .log .old .swp .tmp
+     which is done per default.
+
+
+  -t Give error even on #comment-lines when they are not allowed.
+     (These errors are silently ignored per default)
+
+
+  -T<types>
+     A commandline way to explicitly set the allowed recordtypes.
+     This is _concatenated_ to the allowtype-allowed recordtypes.
+
+  -x Exit with non-null exit code on errors; i.e. make errors detectable by
+     e.g. shell scripts; 1 = validation error, 2 = permission error,
+     3 = combination of 1 and 2.
+
+
+
+All errors in the zonefiles are sent to STDERR.
+
+     Example; simple use:
+       valtz zone-bodin-org
+
+     Example; simple filter-use;
+       valtz -f /etc/zones/zone-* \
+                >/etc/tinydns/data.filtered \
+                2>/var/log/tinydns/valtz.log
+
+     Example; filterfile use;
+       valtz -F /etc/zones/filter/zones-otto \
+                >/etc/tinydns/data.otto \
+                2>/var/log/tinydns/valtz.log
+
+                
+     Example filterfile for using as import from primary (as above):
+       zonefile   /var/zones/external/otto/zone-*
+       deny       bodin.org
+       deny       x42.com
+       extralog   /var/log/tinydns/external-otto.log    
+
+     Example #2, strict filter for a certain user editing just A-records
+
+       zonefile  /home/felix/zones/zone-fl3x-net
+       allow     fl3x.net
+       allowtype + 
+       extralog  /var/log/tinydns/fl3x-net.log
+
+     Example #3, export filter to secondary
+
+       zonefile  /var/zones/primary/zone-*
+       # just allow OUR zones to be exported, not to annoy secondary partner
+       allow     file:/var/zones/primary-zones.txt
+       # don't allow any other types than this; e.g. comments won't be exported
+       allowtype Z + @ . C
+       extralog  /var/log/tinydns/primary-export.log
+
+--EOT
+  exit 0;
+}
+elsif (@{$files} == 0)
+{
+    print <<"--EOT";
+valtz $VERSION, $COPYRIGHT 
+validates tinydns-data zone files
+Usage:
+  Simple validation:
+    $0 [-qrRix] <zonefiles>
+  Simple filtering:
+    $0 -f[qrRiItTx] <zonefiles>
+  Extensive filtering:
+    $0 -F[qrRiItTx] <zonefiles>
+
+  More help and information about options:
+    $0 -h
+
+--EOT
+  exit 0;
+}
+
+
+if ($opt{F})
+{
+    my $cache = {};
+    $cache->{file} = {};
+    for my $file (@{$files})
+    {
+        my $result = do_filterfile($file, $cache);
+    }
+
+}
+else
+{
+
+    my $output = [ \*STDERR ];
+
+    for my $zonefile (sort @{$files})
+    {
+        unless ($opt{s})
+        {
+            next if $zonefile =~ /$FILESUFFIXREGEXP/i;
+        }
+    
+    my $filehandle = \*STDIN;
+    my $fopen = 1;
+    if ($zonefile ne '-')
+    {
+        $fopen = open( $filehandle, $zonefile );
+    }
+        if ($fopen)
+        {
+            %loreg = ();
+            my $errs = 0;
+            my $lno = 0;
+            while (<$filehandle>)
+            {
+                $lno++;
+                my $line = $_;
+                chomp($line);
+                my $v = validate_line($line);
+                for ($v)
+                {
+                    if ($$v[0])
+                    {
+            my $temp = ($zonefile eq '-') ? '<STDIN>' : $zonefile;
+                        p $output, "File $temp" unless $errs;
+                        $errs++;
+                        $verrs_total++;
+                        $$v[1] =~ s/\n/\n    /g;
+                        p $output, "  line $lno; err $$v[0] $line\n    ".$$v[1];
+                        if ($opt{I})
+                        {
+                             print STDOUT "# line $lno; err $$v[0] $line
+                             print STDOUT "# $$v[1]; \n";
+                        }    
+                    }
+                    else
+                    {
+                        # Echo NON-ERRORS to STDOUT
+                        if ($opt{f})
+                        {
+                            print STDOUT "$line\n" unless $opt{q};
+                        }
+                    }
+                }
+            }
+            close $filehandle unless $zonefile eq '-';
+        }
+        else
+        {
+            p $output, "Error: Trouble opening '$zonefile'; $!";
+        }
+    }
+}
+
+if ($opt{x} && ($verrs_total + $perrs_total))
+{
+    my $exitcode = $verrs_total > 0 ? 1 : 0;
+    $exitcode += $perrs_total > 0 ? 2 : 0;
+    exit $exitcode;
+}

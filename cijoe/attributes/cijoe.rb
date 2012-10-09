@@ -1,0 +1,6 @@
+default.cijoe[:user] = "app"
+default.cijoe[:group] = "app"
+default.cijoe[:port] = "4567"
+default.cijoe[:build_root] = "/u/builds"
+default.cijoe[:git_url_prefix] = "git@dev.37signals.com"
+default.cijoe[:runner] = "cap local externals:setup && RAILS_ENV=test rake db:schema:load && RAILS_ENV=test rake"

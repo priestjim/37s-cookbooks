@@ -1,0 +1,6 @@
+<VirtualHost *:80>
+  ServerName      apt.<%= @node[:domain] %>
+  ServerAlias	  apt
+  DocumentRoot    <%= @node[:apt][:mirror][:base_path] + "/www" %>
+  ErrorLog        /var/log/apache2/apt_mirror_error.log
+</VirtualHost>

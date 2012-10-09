@@ -1,0 +1,45 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures ruby",
+  "providing": {
+    "ruby::gc_wrapper": [
+
+    ],
+    "ruby": [
+
+    ]
+  },
+  "name": "ruby",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "ruby::gc_wrapper": "",
+    "ruby": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+
+  }
+}

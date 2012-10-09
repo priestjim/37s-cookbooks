@@ -1,0 +1,104 @@
+#!/usr/local/jruby/bin/jruby --server
+require 'rubygems'
+require 'right_aws'
+require 'optparse'
+
+class S3BucketCopy
+  attr_reader :source_bucket, :target_bucket, :keys, :num_threads, :s3, :s3_interface
+
+  def self.usage
+    puts "Copy an S3 bucket to another one under the same account. Uses S3's fast copy command."
+    puts "Usage: s3_bucket_copy <access_key_id> <secret_access_key> <source_bucket> <target_bucket> [number_of_workers] [force]"
+    puts "'Force' will perform the copy whether or not the buckets appear to be in sync."
+  end
+
+  def initialize(aki, sak, source_bucket, target_bucket, num_threads = 4, force = false)
+    @source_bucket = source_bucket
+    @target_bucket = target_bucket
+    @num_threads = num_threads
+    @mutex = Mutex.new
+    @workers = []
+    @aki = aki
+    @sak = sak
+    @s3 = RightAws::S3.new(aki, sak)
+  end
+
+  def copy!
+    puts "\nFetching bucket keys..."
+    source = @s3.bucket @source_bucket
+    target = @s3.bucket @target_bucket
+    source_keys = source.keys.collect {|b| b.name }
+    target_keys = target.keys.collect {|b| b.name }
+    keys_to_copy = source_keys - target_keys
+    if !@force && keys_to_copy.size < 1
+      puts "These buckets are already in sync."
+      exit 0
+    else
+      puts "Need to copy #{keys_to_copy.size} keys."
+      threadify(:copy, keys_to_copy)
+    end
+  end
+
+  private
+  
+  def copy(thread_num)
+    key = get_key
+    return if key.nil?
+
+    begin
+      s3i ||= RightAws::S3Interface.new(@aki, @sak, {:multi_thread => true})
+      puts "[#{thread_num}] Copying #{@source_bucket}:#{key} to #{@target_bucket}:#{key}"
+      elapsed_time = delta do
+        s3i.copy(@source_bucket, key, @target_bucket, key, :copy, {"Cache-Control" => 'max-age=315360000', "Expires" => '315360000'})
+        acl_prop = s3i.get_acl(@source_bucket, key)
+        s3i.put_acl(@target_bucket, key, acl_prop[:object])
+      end
+      puts "[#{thread_num}] Updated #{key} in #{elapsed_time} seconds"
+    rescue Exception => e
+      STDERR.puts "Error: #{e.message}"
+      STDERR.puts "[#{thread_num}] Copy of #{key} to #{@target_bucket} failed, adding back to queue."
+      requeue_key(key)
+    end
+  end
+
+  def threadify(method, queue)
+    @queue = queue
+
+    ( 0 .. @num_threads-1 ).each do |thread_num| 
+      @workers[thread_num] = Thread.new { self.send(method.to_s, thread_num) }
+    end
+
+    @workers.each { |worker| worker.join }
+  end
+
+  def get_key
+    return nil unless @queue
+    result = nil
+    @mutex.synchronize do
+      result = @queue.pop
+    end
+    result
+  end
+  
+  def requeue_key(key)
+    return unless @queue
+    @mutex.synchronize do
+      @queue.push(key)
+    end
+  end
+
+  def delta(&block)
+    start_time = Time.now
+    yield
+    ( Time.now - start_time ).to_i
+  end
+
+end
+
+if ARGV.size < 4
+  S3BucketCopy.usage
+  exit 1
+end
+
+copier = S3BucketCopy.new(*ARGV)
+copier.copy!

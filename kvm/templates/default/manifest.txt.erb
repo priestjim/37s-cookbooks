@@ -1,0 +1,6 @@
+/usr/local/share/kvm/files/fstab /etc/fstab
+/usr/local/share/kvm/files/ttyS0.conf /etc/init/ttyS0.conf
+/usr/local/share/kvm/files/firstboot.sh /root/firstboot.sh
+/usr/local/share/kvm/files/rc.local /etc/rc.local
+<%= @key_file %> /client.pem
+/home/system/pkg/gems/chef-<%= @node[:chef][:client_version] %>.gem /tmp/chef.gem

@@ -1,0 +1,22 @@
+Bluepill.application("cijoe") do |app|
+  app.process("cijoe") do |process|
+    process.start_command = "<%= "#{@node[:languages][:ruby][:bin_dir]}/unicorn -c /etc/cijoe/unicorn.conf.rb /etc/cijoe/config.ru" %>"
+    process.stop_command = "kill -QUIT `cat /etc/cijoe/unicorn.pid`"
+    process.restart = "kill -USR2 `cat /etc/cijoe/unicorn.pid`"
+    process.stdout = process.stderr = "/var/log/cijoe.log"
+    process.pid_file = "/etc/cijoe/unicorn.pid"
+    process.checks :mem_usage, :every => 10.seconds, :below => <%= @memory_limit %>.megabytes, :times => [3, 5]
+    process.uid = "<%= @user %>"
+    process.gid = "<%= @group %>"
+
+    process.start_grace_time = 10.seconds
+    process.restart_grace_time = 10.seconds
+
+    process.checks :flapping, :times => 2, :within => 30.seconds, :retry_in => 7.seconds
+
+    process.monitor_children do |cp|
+      cp.checks :mem_usage, :every => 10, :below =>  <%= @memory_limit %>.megabytes, :times => [3, 5]
+      cp.stop_command = "kill -QUIT {{PID}}"
+    end
+  end
+end

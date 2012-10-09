@@ -1,0 +1,40 @@
+<domain type='kvm'>
+  <name>$hostname</name>
+  <memory>#echo int($mem) * 1024 #</memory>
+  <vcpu>$cpus</vcpu>
+  <os>
+    <type>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+  </features>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/bin/kvm</emulator>
+    <interface type='bridge'>
+      <source bridge='br0'/>
+      <model type='virtio'/>
+    </interface>
+    <interface type='bridge'>
+      <source bridge='br1'/>
+      <model type='virtio'/>
+    </interface>
+#for $disk in $disks
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none'/>
+      <source file='$disk.filename' />
+      <target dev='vd$disk.devletters()' bus='virtio'/>
+    </disk>
+#end for
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target port='0'/>
+    </console>
+  </devices>
+</domain>

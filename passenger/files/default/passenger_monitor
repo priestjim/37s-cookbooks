@@ -1,0 +1,50 @@
+#!/usr/local/bin/ruby
+#
+# watch for bloating passengers and kill them gracefully if possible (SIGUSR), then with extreme prejudice (SIGTERM)
+#
+
+require 'yaml'
+require 'rubygems'
+require 'syslog_logger'
+
+logger = SyslogLogger.new("passenger")
+
+# required by passenger
+ENV['HTTPD'] = 'apache2'
+
+WARN_MEM_LIMIT = ARGV[0] || 280
+CRIT_MEM_LIMIT = ARGV[1] || 550
+
+module Process
+  def self.running?(pid)
+    begin
+      return Process.getpgid(pid) != -1
+    rescue Errno::ESRCH
+      return false
+    end
+  end
+end
+
+`/usr/local/bin/passenger-memory-stats`.each_line do |line|
+  if line =~ /Rails: /
+    parts = line.split
+    pid, private_dirty_rss, path = parts[0].to_i, parts[4].to_f, parts[7]
+    if private_dirty_rss > CRIT_MEM_LIMIT.to_i
+      logger.info "Found process #{pid} with critical size #{private_dirty_rss.to_s} at path #{path}"
+      logger.info "Attempting graceful kill with SIGUSR1..."
+      Process.kill("SIGUSR1", pid)
+      logger.info "Finished kill attempt. Sleeping for 10 seconds..."
+      sleep 10
+      if Process.running?(pid)
+        logger.info "Process #{pid} is still running. Killing with extreme predjudice (SIGTERM)!"
+        Process.kill("TERM", pid)
+      end
+      logger.info "Done."
+    elsif private_dirty_rss > WARN_MEM_LIMIT.to_i
+      logger.info "Found process #{pid} with size #{private_dirty_rss.to_s} at path #{path}"
+      logger.info "Gracefully killing with SIGUSR1..."
+      Process.kill("SIGUSR1", pid)
+      logger.info "Done."
+    end
+  end
+end

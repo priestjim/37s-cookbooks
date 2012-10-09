@@ -1,0 +1,12 @@
+dhcp-range=<%= @node[:netboot][:begin_ip_range] %>,<%= @node[:netboot][:end_ip_range] %>,<%= @node[:netboot][:netmask] %>,1h
+<% @servers.each do |server| %>
+<% if server[:netboot] %>
+dhcp-host=<%= server[:netboot][:mac] %>,<%= server[:fqdn] %>,<%= server[:ipaddress] %>
+<% end %>
+<% end %>
+enable-tftp
+tftp-root=/tftpboot
+dhcp-boot=pxelinux.0
+dhcp-option=3,<%= @node[:netboot][:default_gateway] %>
+dhcp-option=6,<%= @node[:netboot][:tftp_server_ip] %>
+port=54

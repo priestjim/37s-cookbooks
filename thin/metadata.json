@@ -1,0 +1,49 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "thin",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures thin, a Ruby web server",
+  "providing": {
+    "thin": [
+
+    ]
+  },
+  "name": "thin",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "thin": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "nginx": [
+
+    ],
+    "apache2": [
+
+    ],
+    "ruby": [
+
+    ]
+  }
+}

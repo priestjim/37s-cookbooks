@@ -1,0 +1,40 @@
+# Config file for collectd(1).
+#
+# Some plugins need additional configuration and are disabled by default.
+# Please read collectd.conf(5) for details.
+#
+# You should also read /usr/share/doc/collectd/README.Debian.plugins before
+# enabling any more plugins.
+
+Hostname "<%= @node[:fqdn] %>"
+FQDNLookup true
+BaseDir "<%= @node[:collectd][:base_dir] %>"
+PluginDir "<%= @node[:collectd][:plugin_dir] %>"
+TypesDB "<%= @node[:collectd][:types_db].join('", "') %>"
+Interval <%= @node[:collectd][:interval] %>
+ReadThreads <%= @node[:collectd][:read_threads] %>
+
+<% @node[:collectd][:plugins].each do |plugin| %>
+LoadPlugin "<%= plugin[:name] %>"
+<% end %>
+
+<% @node[:collectd][:plugins].each do |plugin| %>
+<% if plugin[:options] %>
+<Plugin <%= plugin[:name] %>>
+  <% plugin[:options].each do |opt| %>
+  <%= opt.keys.first %> <%= format_option(opt[opt.keys.first]) %>
+  <% end %>
+</Plugin>
+
+<% end %>
+<% end %>
+
+LoadPlugin "network"
+<Plugin "network">
+  <% @node[:collectd][:server_address].each do |address| -%>
+  Server "<%= address %>"
+  <% end -%>
+  <% if @node[:collectd][:listen_address] %>Listen "<%= @node[:collectd][:listen_address] %>"<% end -%>
+</Plugin>
+
+Include "/etc/collectd/thresholds.conf"

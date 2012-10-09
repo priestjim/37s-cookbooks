@@ -1,0 +1,15 @@
+#!/bin/sh -x
+
+# Install REE
+/usr/bin/dpkg --root=$1 -i /home/system/pkg/debs/ruby-enterprise_<%= @node[:ree][:version] %>_amd64.deb
+
+# Install Chef
+/usr/sbin/chroot $1 /usr/bin/env HOME=/root /usr/local/bin/gem install chef --no-user-install --no-rdoc --no-ri
+
+# Create /etc/chef, set the perms, and move the client key there
+mkdir -p $1/etc/chef
+chown root:root $1/etc/chef
+chmod 700 $1/etc/chef
+mv $1/client.pem $1/etc/chef/client.pem
+cp /etc/chef/client.rb $1/etc/chef/client.rb
+chmod 600 $1/etc/chef/client.pem

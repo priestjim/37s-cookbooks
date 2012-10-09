@@ -1,0 +1,8 @@
+log_files:
+ - <%= @clarity[:log_path] %>/*
+
+port: <%= @clarity[:port] %>
+host: <%= @clarity[:listen_ip] %>
+
+username: <%= @credentials[:login] %>
+password: <%= @credentials[:password] %>

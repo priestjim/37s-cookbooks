@@ -1,0 +1,6 @@
+maintainer        "37signals"
+maintainer_email  "sysadmins@37signals.com"
+description       "Configures djbdns"
+version           "0.1"
+depends           "build"
+depends           "runit"

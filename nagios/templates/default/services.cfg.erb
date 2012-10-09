@@ -1,0 +1,224 @@
+define service {
+  use default-service
+  host_name *<% @no_ping_devices.each do |no_ping_device| %>,!<%= no_ping_device['fqdn'] %><% end %>
+  service_description ping
+  check_command check_ping!100.0,20%!500.0,60%
+}
+
+define service {
+  use                     default-service
+  hostgroup_name          servers
+  host_name               <%= @free_disk_disable_servers.map { |v| "!#{v[:fqdn]}" }.compact.join(', ') %>
+  service_description     Free Space All Disks
+  check_command           check_all_disks
+}
+
+define service {
+  use                     default-service
+  hostgroup_name          servers
+  host_name               <%= @load_disable_servers.map { |v| "!#{v[:fqdn]}" }.compact.join(', ') %>
+  service_description     Load Average
+  check_command           check_load
+}
+
+define service{
+  use                     default-service
+  hostgroup_name          servers
+  host_name               <%= @free_memory_disable_servers.map { |v| "!#{v[:fqdn]}" }.compact.join(', ') %>
+  service_description     Free Memory
+  check_command           check_mem
+}
+
+define service{
+  use                     default-service
+  hostgroup_name          dell
+  service_description     Dell Hardware Status
+  check_command           check_nrpe!check_openmanage
+}
+
+# Fortigate Checks
+
+<% @fortigate_firewalls.each do |firewall| %>
+  define service{
+    use                     default-service
+    host_name               <%= firewall['fqdn'] %>
+    service_description     Fortigate Firewall CPU
+    check_command           check_fortigate_cpu!<%= @community %>!70!85
+  }
+
+  define service{
+    use                     default-service
+    host_name               <%= firewall['fqdn'] %>
+    service_description     Fortigate Firewall Memory
+    check_command           check_fortigate_memory!<%= @community %>!70!85
+  }
+    <% firewall['active_ports'].each do |port| %>
+    
+      define service {
+        use                     default-service
+        host_name               <%= firewall['fqdn'] %>
+        service_description     Fortigate Firewall Port <%= port %> Status
+        check_command           check_fortigate_port!<%= @community %>!<%= port %>
+      }
+    <% end %>
+<% end %>
+
+# Cisco Checks
+
+<% @cisco_switches.each do |switch| %>
+  define service {
+    use                     default-service
+    host_name               <%= switch['fqdn'] %>
+    service_description     Cisco Stack Status
+    check_command           check_cisco_stack!<%= @community %>
+  }
+  
+  define service{
+    use                     default-service
+    host_name               <%= switch['fqdn'] %>
+    service_description     Cisco Switch CPU 5 min
+    check_command           check_cisco_cpu!<%= @community %>!1.3.6.1.4.1.9.2.1.58.0!60!80
+  }
+  
+  define service{
+    use                     default-service
+    host_name               <%= switch['fqdn'] %>
+    service_description     Cisco Switch CPU 1 min
+    check_command           check_cisco_cpu!<%= @community %>!1.3.6.1.4.1.9.2.1.57.0!60!80
+  }
+  
+  define service{
+    use                     default-service
+    host_name               <%= switch['fqdn'] %>
+    service_description     Cisco Switch CPU 5 sec
+    check_command           check_cisco_cpu!<%= @community %>!1.3.6.1.4.1.9.2.1.56.0!60!80
+  }
+    <% switch['active_ports'].each do |port| %>
+    
+      define service {
+        use                     default-service
+        host_name               <%= switch['fqdn'] %>
+        service_description     Cisco <%= port %> Status
+        check_command           check_cisco!<%= @community %>!<%= port %>
+      }
+    <% end %>
+<% end %>
+
+# APC PDU Checks
+
+<% @apc_pdus.each do |pdu| %>
+  define service{
+    use                     default-service
+    host_name               <%= pdu['fqdn'] %>
+    service_description     APC PDU Load Total
+    check_command           check_apc_load_total!<%= @community %>!180!240
+  }
+  
+  define service{
+    use                     default-service
+    host_name               <%= pdu['fqdn'] %>
+    service_description     APC PDU Load Bank 1
+    check_command           check_apc_load_bank_1!<%= @community %>!120!150
+  }
+  
+  define service{
+    use                     default-service
+    host_name               <%= pdu['fqdn'] %>
+    service_description     APC PDU Load Bank 2
+    check_command           check_apc_load_bank_2!<%= @community %>!120!150
+  }
+<% end %>
+
+# Isilon Storage Checks
+
+<% @isilon_storage_clusters.each do |isilon_storage_cluster| %>
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_ONEFS_VERSION
+      check_command       check_snmp! -o.1.3.6.1.2.1.1.1.0 -C <%= @community %>
+  }
+
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_NODE_ID
+      check_command       check_snmp! -o.1.3.6.1.4.1.12124.2.1.1.0 -C <%= @community %>
+  }
+
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_CLSTR_NAME
+      check_command       check_snmp! -o.1.3.6.1.4.1.12124.1.1.1.0 -C <%= @community %>
+  }
+
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_CONFIGURED_NODES
+      check_command       check_snmp! -o.1.3.6.1.4.1.12124.1.1.5.0 -C <%= @community %>
+  }
+
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_ONLINE_NODES
+      check_command       check_snmp! -o.1.3.6.1.4.1.12124.1.1.6.0 -C <%= @community %>
+  }
+
+  define service{
+      use                 default-service
+      host_name           <%= isilon_storage_cluster['fqdn'] %>
+      service_description SNMP_CLUSTER_HEALTH
+      check_command       check_snmp_cluster_health!<%= @community %>
+  }
+<% end %>
+
+<% @nodes.each do |node| %>
+  <% if node[:nagios] && node[:nagios][:services] %>
+    <% node[:nagios][:services].each do |name, params| %>
+    define service {
+      host_name <%= node['hostname'] %>
+      <% params.each do |n, v| %>
+      <%= n %>  <%= v %>
+      <% end %>
+    }
+    <% end %>
+  <% end %>
+<% end %>
+
+<% @devices.each do |device| %>
+  <% if device[:services] %>
+    <% device[:services].reject { |k,v| k == 'id' }.each do |name, params| %>
+    define service {
+      host_name <%= device['fqdn'] %>
+      <% params.each do |n, v| %>
+      <%= n %>  <%= v %>
+      <% end %>
+    }
+    <% end %>
+  <% end %>
+<% end %>
+
+<% @other_hosts.each do |host| %>
+  <% if host[:services] %>
+    <% host[:services].reject { |k,v| k == 'id' }.each do |name, params| %>
+    define service {
+      host_name <%= host['fqdn'] %>
+      <% params.each do |n, v| %>
+      <%= n %>  <%= v %>
+      <% end %>
+    }
+    <% end %>
+  <% end %>
+<% end %>
+
+#<% @proxy_instances.each do |host, vip_prefix, proxy_vip_octet, app_name| %>
+#    define service {
+#      use                     default-service
+#      host_name               <%= host %>
+#      service_description     <%= app_name %> HAProxy Port Status
+#      check_command           check-ip-alive-by-http!<%= vip_prefix %>.<%= proxy_vip_octet %>
+#    }
+#<% end %>

@@ -1,0 +1,8 @@
+Bluepill.application("mcollective") do |app|
+  app.process("mcollectived") do |process|
+    process.start_command = "/usr/local/sbin/mcollectived --pidfile=<%= @pid_file %>"
+    process.pid_file = "<%= @pid_file %>"
+    process.stdout = process.stderr = "/var/log/mcollectived-run.log"
+    process.daemonize = true
+  end
+end

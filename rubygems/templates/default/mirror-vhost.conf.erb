@@ -1,0 +1,6 @@
+<VirtualHost *:80>
+  ServerName      gems.<%= @node[:domain] %>
+  ServerAlias	    <%= @node[:rubygems][:mirror][:aliases].join(" ") %>
+  DocumentRoot    <%= @node[:rubygems][:mirror][:base_path] %>
+  ErrorLog        /var/log/apache2/gem_mirror_error.log
+</VirtualHost>

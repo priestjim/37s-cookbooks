@@ -1,0 +1,16 @@
+Bluepill.application("resque_web") do |app|
+  app.process("resque_web") do |process|
+    process.start_command = "/usr/bin/env HOME=/root /usr/local/bin/resque-web -F"
+    process.stop_command = "kill -QUIT {{PID}}"
+    process.daemonize = true
+    process.pid_file = "/var/run/resque.pid"
+    process.stdout = process.stderr = "/var/log/resque.log"
+    process.checks :mem_usage, :every => 10.seconds, :below => 100.megabytes, :times => [3, 5]
+
+    process.start_grace_time = 10.seconds
+    process.start_grace_time = 5.seconds
+    process.restart_grace_time = 10.seconds
+
+    process.checks :flapping, :times => 2, :within => 30.seconds, :retry_in => 7.seconds
+  end
+end

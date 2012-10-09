@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+cd <%= @app_root %>/current
+exec chpst -u app:app <%= @binary_path %> -E <%= @env %> -c <%= @config_path %> <%= "-d" if @debug %> > <%= @app_root %>/shared/log/unicorn.log 2>&1

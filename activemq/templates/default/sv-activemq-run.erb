@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+cd /opt/apache-activemq-<%= @node[:activemq][:version] %>
+exec su <%= @node[:activemq][:user] %> -c /opt/apache-activemq-<%= @node[:activemq][:version] %>/bin/activemq

@@ -1,0 +1,8 @@
+Bluepill.application("ganglia-php-cgi") do |app|
+  app.process("ganglia-php-cgi") do |process|
+    process.start_command = "/usr/bin/spawn-fcgi -f /usr/bin/php5-cgi -a 127.0.0.1 -p <%= @port %> -P <%= @pid_file %> -u <%= @user %> -g <%= @group %>"
+    process.pid_file = "<%= @pid_file %>"
+    process.stdout = process.stderr = "/var/log/php5-cgi.log"
+    process.daemonize = true
+  end
+end

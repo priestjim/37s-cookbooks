@@ -1,0 +1,7 @@
+pid=/var/run/ddclient.pid
+protocol=dyndns2
+server=update.dynect.net
+use=web
+login=<%= @node[:ddclient][:dyndns_login] %>
+password=<%= @node[:ddclient][:dyndns_password] %>
+<%= "#{@node[:public_fqdn]|| @node[:fqdn]}" %>

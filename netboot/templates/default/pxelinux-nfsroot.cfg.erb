@@ -1,0 +1,11 @@
+serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1
+terminal --timeout=15 serial console
+
+default nfsroot
+prompt 1
+timeout 20
+
+label nfsroot
+kernel <%= @node[:nfsroot][:kernel] %>
+initrd <%= @node[:nfsroot][:initrd] %>
+append root=/dev/nfs rw nfsroot=<%= @node[:nfsroot][:server_ip] %>:<%= @server[:nfsroot][:root_path] %> ip=<%= @server[:nfsroot][:initial_ip] %>:<%= @node[:nfsroot][:server_ip] %>:<%= @node[:nfsroot][:gateway] %>:<%= @node[:nfsroot][:netmask] %>:<%= @server[:fqdn] %>:<%= @node[:nfsroot][:interface] %>:off console=tty0 console=ttyS1,115200n8

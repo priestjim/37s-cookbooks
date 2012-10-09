@@ -1,0 +1,53 @@
+<domain type='kvm'>
+  <name>$hostname</name>
+  <memory>#echo $mem * 1024 #</memory>
+  <vcpu>$cpus</vcpu>
+  <os>
+    <type>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+  </features>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/bin/kvm</emulator>
+#if $bridge
+    <interface type='bridge'>
+      <source bridge='$bridge'/>
+#else
+    <interface type='network'>
+#if $mac
+      <mac address='$mac'/>
+#end if
+      <source network='default'/>
+#end if
+#if $virtio_net
+      <model type='virtio'/>
+#end if
+    </interface>
+    <interface type='bridge'>
+      <source bridge='br1'/>
+      <model type='virtio'/>
+    </interface>
+    <input type='mouse' bus='ps2'/>
+    <graphics type='vnc' port='-1' listen='127.0.0.1'/>
+#for $disk in $disks
+    <disk type='block' device='disk'>
+      <source dev='/dev/mapper/VolGroupKVM-kvm_$hostname.replace("-", "_")' />
+      <target dev='sda' bus='virtio' />
+    </disk>
+#end for
+    <serial type='pty'>
+      <source path='/dev/pts/3'/>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <source path='/dev/pts/4'/>
+      <target port='0'/>
+    </console>
+  </devices>
+</domain>

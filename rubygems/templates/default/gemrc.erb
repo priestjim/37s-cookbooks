@@ -1,0 +1,11 @@
+---
+:benchmark: false
+:backtrace: false
+:update_sources: true
+:bulk_threshold: 1000
+:verbose: true
+:sources:
+- http://gemcutter.org/
+<% @node[:rubygems][:sources].each do |source| -%>
+- http://<%= source %>
+<% end -%>

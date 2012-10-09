@@ -1,0 +1,6 @@
+<VirtualHost *:80>
+  ServerName      <%= @node[:ganglia][:server_fqdn] %>
+  ServerAlias     <%= @node[:ganglia][:server_fqdn].split('.').first %>
+  DocumentRoot    /usr/share/ganglia-webfrontend
+  ErrorLog        /var/log/apache2/ganglia_error.log
+</VirtualHost>

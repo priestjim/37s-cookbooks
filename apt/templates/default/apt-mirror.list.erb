@@ -1,0 +1,42 @@
+############# config ##################
+#
+set base_path    <%= @node[:apt][:mirror][:base_path] %>
+#
+set mirror_path  $base_path/mirror
+set skel_path    $base_path/skel
+set var_path     $base_path/var
+# set cleanscript $var_path/clean.sh
+set defaultarch  i386
+set nthreads     20
+set _tilde 0
+#
+############# end config ##############
+
+deb http://archive.ubuntu.com/ubuntu intrepid main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu intrepid-updates main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu intrepid-security main restricted universe multiverse
+deb http://archive.canonical.com/ubuntu intrepid partner
+
+deb-amd64 http://archive.ubuntu.com/ubuntu intrepid main restricted universe multiverse
+deb-amd64 http://archive.ubuntu.com/ubuntu intrepid-updates main restricted universe multiverse
+deb-amd64 http://security.ubuntu.com/ubuntu intrepid-security main restricted universe multiverse
+deb-amd64 http://archive.canonical.com/ubuntu intrepid partner
+
+deb http://archive.ubuntu.com/ubuntu hardy main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu hardy-updates main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu hardy-security main restricted universe multiverse
+
+deb-amd64 http://archive.ubuntu.com/ubuntu hardy main restricted universe multiverse
+deb-amd64 http://archive.ubuntu.com/ubuntu hardy-updates main restricted universe multiverse
+deb-amd64 http://security.ubuntu.com/ubuntu hardy-security main restricted universe multiverse
+
+deb http://archive.canonical.com/ubuntu hardy partner
+deb-amd64 http://archive.canonical.com/ubuntu hardy partner
+
+deb	http://mirror.ourdelta.org/deb	intrepid ourdelta
+deb-amd64	http://mirror.ourdelta.org/deb	intrepid ourdelta
+
+clean http://archive.ubuntu.com/ubuntu
+clean http://archive.canonical.com/ubuntu
+clean http://security.ubuntu.com/ubuntu
+clean http://mirror.ourdelta.org/deb

@@ -1,0 +1,28 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet static
+        address $ip
+        netmask $mask 
+        network $net
+        broadcast $bcast
+        gateway $gw 
+        # dns-* options are implemented by the resolvconf package, if installed
+        dns-nameservers $dns
+        dns-search $domain
+
+#set $storage_ip = "172.16.5." + $ip.split('.')[3]
+
+# The storage network interface
+auto eth1
+iface eth1 inet static
+        address $storage_ip
+        netmask 255.255.240.0
+        network 172.16.0.0
+        broadcast 172.16.15.255

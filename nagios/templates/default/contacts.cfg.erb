@@ -1,0 +1,53 @@
+define contactgroup {
+  contactgroup_name sysadmin
+  alias             Sysadmins
+}
+
+define contactgroup {
+  contactgroup_name sysadmin-pagerduty
+  alias             Sysadmins PagerDuty
+}
+
+define contact {
+  name                            default-contact
+  service_notification_period     24x7
+  host_notification_period        24x7
+  service_notification_options    w,u,c,r,f,s
+  host_notification_options       d,u,r,f,s
+  service_notification_commands   service-notify-by-email, service-notify-by-jabber
+  host_notification_commands      host-notify-by-email, host-notify-by-jabber
+  register                        0
+}
+
+define contact {
+  name                            sms-contact
+  service_notification_period     24x7
+  host_notification_period        24x7
+  service_notification_options    w,u,c,r,f,s
+  host_notification_options       d,u,r,f,s
+  register                        0
+}
+
+<% @sysadmins.each do |a| -%>
+<% next unless a[:monitoring] %>
+define contact {
+  use          default-contact
+  contact_name <%= a['id'] %>
+  alias        <%= a['full_name']%>
+  email        <%= a['monitoring']['email'] %>
+  pager        <%= a['monitoring']['sms'] %>
+  address1     <%= a['monitoring']['jabber'] %>
+  contactgroups sysadmin
+  host_notification_commands host-notify-by-email, host-notify-by-jabber
+}
+<% end -%>
+
+define contact {
+  contact_name campfire
+  use   default-contact
+  alias Campfire
+  service_notification_commands   service-notify-by-campfire
+  host_notification_commands      host-notify-by-campfire
+  email  <%= @campfire[:email] %>
+  contactgroups sysadmin
+}

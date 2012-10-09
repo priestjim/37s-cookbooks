@@ -1,0 +1,43 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache 2.0",
+  "maintainer": "37signals",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Installs/Configures netboot",
+  "providing": {
+    "netboot": [
+
+    ]
+  },
+  "name": "netboot",
+  "attributes": {
+
+  },
+  "long_description": "= DESCRIPTION:\n\n= REQUIREMENTS:\n\n= ATTRIBUTES: \n\n= USAGE:\n\n",
+  "recipes": {
+    "netboot": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "apache2": [
+
+    ]
+  }
+}

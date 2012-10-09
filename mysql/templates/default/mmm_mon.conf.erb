@@ -1,0 +1,16 @@
+include mmm_common.conf
+
+<monitor>
+  ip          127.0.0.1
+  pid_path    /var/run/mmmd_mon.pid
+  bin_path    /usr/bin/mysql-mmm/
+  status_path /var/lib/misc/mmmd_mon.status
+  ping_ips    <%= @node[:mysql][:mmm][:hosts].map { |k,v| v[:ip_address] }.join(', ') %>
+</monitor>
+
+<host default>
+  monitor_user     <%= @node[:mysql][:mmm][:monitor_username] %>
+  monitor_password <%= @node[:mysql][:mmm][:monitor_password] %>
+</host>
+
+debug 0

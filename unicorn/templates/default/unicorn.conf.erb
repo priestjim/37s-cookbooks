@@ -1,0 +1,14 @@
+worker_processes <%= @worker_count %>
+listen '<%= @socket_path %>', :backlog => <%= @backlog_limit %>
+listen '<%= @master_bind_address %>:<%= @master_bind_port %>'
+timeout <%= @timeout %>
+pid "<%= @pid_path %>"
+
+<% if @preload %>
+
+<% end %>
+after_fork do |server,worker|
+  <% if @worker_listeners %>
+  server.listen("<%= @worker_bind_address %>:#{<%= @worker_bind_base_port %> + worker.nr}") rescue nil
+  <% end %>
+end

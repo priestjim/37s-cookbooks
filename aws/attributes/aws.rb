@@ -1,0 +1,1 @@
+default.aws[:path] = "/etc/aws"

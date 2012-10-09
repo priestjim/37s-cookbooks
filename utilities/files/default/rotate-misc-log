@@ -1,0 +1,7 @@
+#!/bin/sh
+
+APP=$1
+DATE=`date +%m%d`
+
+/bin/cp /u/logs/${APP}/${DATE}/misc.log /u/logs/${APP}/${DATE}/misc.log.1
+cat /dev/null > /u/logs/${APP}/${DATE}/misc.log

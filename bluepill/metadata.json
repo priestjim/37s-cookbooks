@@ -1,0 +1,41 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache 2.0",
+  "maintainer": "Joshua Sierles",
+  "suggestions": {
+
+  },
+  "maintainer_email": "joshua@37signals.com",
+  "version": "0.7.0",
+  "conflicting": {
+
+  },
+  "description": "Installs bluepill and provides definitions and templates for monitoring",
+  "providing": {
+    "bluepill": [
+
+    ]
+  },
+  "name": "bluepill",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "bluepill": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "groupings": {
+
+  },
+  "recommendations": {
+
+  },
+  "platforms": {
+
+  },
+  "license": "Apache v2.0",
+  "maintainer": "ganglia",
+  "suggestions": {
+
+  },
+  "maintainer_email": "sysadmins@37signals.com",
+  "version": "0.1.0",
+  "conflicting": {
+
+  },
+  "description": "Configures Ganglia",
+  "providing": {
+    "ganglia::client": [
+
+    ],
+    "ganglia": [
+
+    ],
+    "ganglia::server": [
+
+    ]
+  },
+  "name": "ganglia",
+  "attributes": {
+
+  },
+  "long_description": "",
+  "recipes": {
+    "ganglia": "",
+    "ganglia::client": "",
+    "ganglia::server": ""
+  },
+  "replacing": {
+
+  },
+  "dependencies": {
+    "apache2": [
+
+    ]
+  }
+}

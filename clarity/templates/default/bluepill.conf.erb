@@ -1,0 +1,8 @@
+Bluepill.application("clarity") do |app|
+  app.process("clarity") do |process|
+    process.start_command = "/usr/local/bin/clarity --config=/etc/clarity.yml <%= @log_path %>"
+    process.pid_file = "/var/run/clarity.pid"
+    process.stdout = process.stderr = "/var/log/clarity.log"
+    process.daemonize = true
+  end
+end

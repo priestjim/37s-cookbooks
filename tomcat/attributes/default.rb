@@ -1,0 +1,7 @@
+default.tomcat[:user] = "tomcat6"
+default.tomcat[:port] = "8080"
+default.tomcat[:max_thread] = "200"
+default.tomcat[:backlog] = "100"
+default.tomcat[:java_home] = "/usr/lib/jvm/java-6-openjdk"
+default.tomcat[:heap_size] = "128M"
+default.tomcat[:stack_size] = "16M"
